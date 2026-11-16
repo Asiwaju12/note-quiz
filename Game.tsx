@@ -1104,7 +1104,7 @@ function Results({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [daily, dailyDate]);
 
-  const dailyStandingResult = dailyBoard ? dailyStanding(dailyBoard) : { rank: 0, entry: null };
+  const dailyStandingResult = dailyBoard ? dailyStanding(dailyBoard, account?.id || undefined) : { rank: 0, entry: null };
 
   return (
     <div className="grain relative flex min-h-dvh flex-col overflow-hidden bg-night text-cream">
