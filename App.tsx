@@ -23,6 +23,7 @@ export default function App() {
   const [runMode, setRunMode] = useState<RunMode>("classic");
   const [dailyDate, setDailyDate] = useState("");
   const [account, setAccount] = useState<PublicAccount | null>(null);
+  const [demoMode, setDemoMode] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [authCallbackError, setAuthCallbackError] = useState<string | null>(null);
   const [initials, setInitials] = useState(() => loadInitials());
@@ -86,6 +87,7 @@ export default function App() {
   };
 
   const handleAuth = (next: PublicAccount) => {
+    setDemoMode(false);
     setAccount(next);
     setAuthCallbackError(null);
     const tag = initialsFor(next);
@@ -98,6 +100,7 @@ export default function App() {
 
   const handleSignOut = async () => {
     await signOut();
+    setDemoMode(false);
     setAccount(null);
     setAuthMode("signup");
     setAuthOpen(true);
@@ -106,8 +109,18 @@ export default function App() {
     sfx.tap();
   };
 
+  const handleDemo = () => {
+    setAccount(null);
+    setDemoMode(true);
+    setAuthOpen(false);
+    setScreen("home");
+    setDeck(SAMPLE_DECK);
+    setRunMode("classic");
+    sfx.start();
+  };
+
   const startRun = (nextDeck?: Deck) => {
-    if (!account) {
+    if (!account && !demoMode) {
       openAuth("signup");
       return;
     }
@@ -171,7 +184,7 @@ export default function App() {
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-cream/70">Restoring your Recall Quiz session…</p>
           </div>
         </div>
-      ) : !account ? (
+      ) : !account && !demoMode ? (
         <AuthDialog
           open
           initialMode="signup"
@@ -179,6 +192,7 @@ export default function App() {
           initialError={authCallbackError}
           onClose={() => {}}
           onAuth={handleAuth}
+          onDemo={handleDemo}
         />
       ) : (
         <>
@@ -226,6 +240,7 @@ export default function App() {
             initialMode={authMode}
             onClose={() => setAuthOpen(false)}
             onAuth={handleAuth}
+            onDemo={handleDemo}
           />
         </>
       )}
