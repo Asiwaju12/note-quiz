@@ -617,7 +617,7 @@ export function Home({
 
                   {sourceTab === "files" ? (
                     <div id="notes">
-                      <FileImporter onExtract={handleFilesExtract} />
+                      <FileImporter account={account} onExtract={handleFilesExtract} />
                       <p className="mt-2 flex items-center justify-between gap-2 font-mono text-[8px] uppercase tracking-[0.06em] text-muted">
                         <span>Upload PDFs, documents, text files or photos</span>
                         <button type="button" onClick={loadSample} className="shrink-0 underline decoration-dotted underline-offset-2 hover:text-ink">
