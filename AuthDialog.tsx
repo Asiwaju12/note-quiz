@@ -3,7 +3,6 @@ import { cn } from "@/utils/cn";
 import {
   deriveHandle,
   signIn,
-  signInDemo,
   signUp,
   type AuthResult,
   type PublicAccount,
@@ -24,6 +23,7 @@ export function AuthDialog({
   initialError = null,
   onClose,
   onAuth,
+  onDemo,
 }: {
   open: boolean;
   initialMode?: Mode;
@@ -31,6 +31,7 @@ export function AuthDialog({
   initialError?: string | null;
   onClose: () => void;
   onAuth: (account: PublicAccount) => void;
+  onDemo: () => void;
 }) {
   const [mode, setMode] = useState<Mode>(initialMode);
   const [signUpForm, setSignUpForm] = useState(emptySignUp);
@@ -126,10 +127,8 @@ export function AuthDialog({
     setShowPassword(false);
   };
 
-  const handleDemo = async () => {
-    setBusy(true);
-    setError(null);
-    finish(await signInDemo());
+  const handleDemo = () => {
+    onDemo();
   };
 
   const passwordStrength =
@@ -440,34 +439,20 @@ export function AuthDialog({
                   </button>
                 </form>
 
-{!required && (
-                  <>
-                <div className="my-3 flex items-center gap-2">
+<div className="my-3 flex items-center gap-2">
                   <span className="h-px flex-1 bg-ink/10" />
                   <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-muted">or</span>
                   <span className="h-px flex-1 bg-ink/10" />
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={handleDemo}
-                    disabled={busy}
-                    className="press inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-ink/20 bg-paper/60 px-2.5 py-2 font-display text-[11px] font-bold hover:border-ink disabled:opacity-60"
-                  >
-                    <Icon name="bolt" size={12} /> Try demo profile
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="press inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-ink/20 bg-paper/60 px-2.5 py-2 font-display text-[11px] font-bold hover:border-ink"
-                  >
-                    <Icon name="play" size={11} /> Continue as guest
-                  </button>
-                </div>
-
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={handleDemo}
+                  disabled={busy}
+                  className="press inline-flex w-full items-center justify-center gap-1.5 rounded-lg border-2 border-ink/20 bg-paper/60 px-2.5 py-2 font-display text-[11px] font-bold hover:border-ink disabled:opacity-60"
+                >
+                  <Icon name="bolt" size={12} /> Explore demo without an account
+                </button>
 
                 <p className="mt-3 flex items-start gap-1.5 font-mono text-[8px] leading-relaxed text-muted/85">
                   <Icon name="shield" size={10} className="mt-0.5 shrink-0" />
