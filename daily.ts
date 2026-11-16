@@ -2,6 +2,7 @@ import { SAMPLE_DECK } from "./deck";
 import type { Deck, Question } from "./types";
 import { DAILY_SIZE } from "./types";
 import { getPlayerId, loadString, saveString } from "./storage";
+import { supabaseAuth, supabaseRest } from "./supabase";
 
 export type DailyEntry = {
   id: string;
@@ -249,6 +250,23 @@ async function publishRemote(date: string, entries: DailyEntry[]): Promise<void>
 
 export async function fetchDailyBoard(date: string): Promise<DailyBoard> {
   const local = loadLocalDaily(date);
+  const session = await supabaseAuth.getSession().catch(() => null);
+  if (session) {
+    try {
+      const rows = await supabaseRest<Array<{ user_id: string; handle: string; score: number; correct: number; total: number; streak: number; created_at: string }>>(
+        "daily_scores",
+        `select=user_id,handle,score,correct,total,streak,created_at&score_date=eq.${encodeURIComponent(date)}&order=score.desc&limit=25`,
+      );
+      return {
+        date,
+        entries: rows.map((row) => ({ id: row.user_id, handle: normalizeHandle(row.handle), score: row.score, correct: row.correct, total: row.total, streak: row.streak, at: new Date(row.created_at).getTime() })),
+        online: true,
+        fetchedAt: Date.now(),
+      };
+    } catch {
+      return { date, entries: dedupe(local).slice(0, MAX_ENTRIES), online: false, fetchedAt: Date.now() };
+    }
+  }
   try {
     const remote = await fetchRemote(date);
     return {
@@ -263,6 +281,27 @@ export async function fetchDailyBoard(date: string): Promise<DailyBoard> {
 }
 
 export async function submitDailyScore(date: string, submission: DailySubmission): Promise<DailyBoard> {
+  const session = await supabaseAuth.getSession().catch(() => null);
+  if (session) {
+    await supabaseRest<unknown>(
+      "daily_scores",
+      "on_conflict=user_id,score_date",
+      {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({
+          user_id: session.user.id,
+          score_date: date,
+          handle: normalizeHandle(submission.handle),
+          score: Math.max(0, Math.min(MAX_SCORE, Math.round(submission.score))),
+          correct: submission.correct,
+          total: submission.total,
+          streak: submission.streak,
+        }),
+      },
+    );
+    return fetchDailyBoard(date);
+  }
   const mine = saveDailyAttempt(date, submission);
   const local = loadLocalDaily(date);
   let remote: DailyEntry[] = [];
