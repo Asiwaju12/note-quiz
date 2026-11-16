@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { Home } from "./components/Home";
-import { Game } from "./components/Game";
-import { HowToPlay } from "./components/HowToPlay";
-import { AuthDialog } from "./components/AuthDialog";
-import ParticleField, { type ParticleHandle } from "./components/ParticleField";
-import { SAMPLE_DECK } from "./game/deck";
-import type { Deck } from "./game/types";
-import { initialsFor, loadSession, signOut, type PublicAccount } from "./game/auth";
-import type { Pace } from "./game/types";
-import { loadInitials, loadMuted, loadPace, saveInitials, saveMuted, savePace } from "./game/storage";
-import { armAudio, setMuted as setSoundMuted, sfx } from "./game/sound";
+import { Home } from "./Home";
+import { Game } from "./Game";
+import { HowToPlay } from "./HowToPlay";
+import { AuthDialog } from "./AuthDialog";
+import ParticleField, { type ParticleHandle } from "./ParticleField";
+import { SAMPLE_DECK } from "./deck";
+import type { Deck } from "./types";
+import { initialsFor, loadSession, signOut, type PublicAccount } from "./auth";
+import type { Pace } from "./types";
+import { loadInitials, loadMuted, loadPace, saveInitials, saveMuted, savePace } from "./storage";
+import { armAudio, setMuted as setSoundMuted, sfx } from "./sound";
 
 type Screen = "home" | "play";
 type AuthMode = "signin" | "signup";
