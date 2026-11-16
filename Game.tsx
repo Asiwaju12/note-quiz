@@ -490,7 +490,11 @@ export function Game({
       accuracy: state.answered > 0 ? Math.round((state.correct / state.answered) * 100) : 0,
       date: new Date().toISOString(),
     };
-    if (account) {\n      void saveCloudScore(account.id, account.handle, entry).then(setBoard).catch((error) => console.error("Could not save score to Supabase:", error));\n    } else {\n      saveScore(entry);\n    }
+    if (account) {
+      void saveCloudScore(account.id, account.handle, entry).then(setBoard).catch((error) => console.error("Could not save score to Supabase:", error));
+    } else {
+      saveScore(entry);
+    }
     if (savedRunRef.current !== state.runId) {
       savedRunRef.current = state.runId;
       savePlayed(loadPlayed() + 1);
