@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/utils/cn";
 import { parseNotes } from "@/game/parseNotes";
+import { loadCloudNote, saveCloudNote } from "./cloud";
 import { SAMPLE_DECK } from "@/game/deck";
 import type { Deck, Pace, ScoreEntry } from "@/game/types";
 import { PACES, paceSeconds } from "@/game/types";
@@ -75,7 +76,7 @@ const RULES = [
   { icon: "bolt" as IconName, text: "Each correct answer banks 100 × level, plus a time bonus and streak fuel." },
   { icon: "layers" as IconName, text: "Clear 3 questions to level up. A flawless level restores a lost heart." },
   { icon: "heart" as IconName, text: "Three hearts. Wrong answers and timeouts cost one. Lose all three and the run ends." },
-  { icon: "trophy" as IconName, text: "Best score is saved on this device — no account, no cloud, no excuses." },
+  { icon: "trophy" as IconName, text: "Sign in to sync your profile, notes and scores across devices." },
 ];
 
 function NoteDoodle() {
@@ -179,6 +180,7 @@ export function Home({
   const initialNotesRef = useRef(loadNotes());
   const [notes, setNotes] = useState(initialNotesRef.current);
   const [notesHydrated, setNotesHydrated] = useState(false);
+  const [cloudNotesReady, setCloudNotesReady] = useState(false);
   const [title, setTitle] = useState(() => loadNoteTitle());
   const [generated, setGenerated] = useState<Deck | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -214,10 +216,35 @@ export function Home({
   }, []);
 
   useEffect(() => {
+    let active = true;
+    if (!account) {
+      setCloudNotesReady(true);
+      return () => { active = false; };
+    }
+    setCloudNotesReady(false);
+    void loadCloudNote().then((stored) => {
+      if (!active) return;
+      if (stored) {
+        setNotes(stored.content);
+        setTitle(stored.title);
+      }
+      setCloudNotesReady(true);
+    }).catch((error) => {
+      console.error("Could not load notes from Supabase:", error);
+      if (active) setCloudNotesReady(true);
+    });
+    return () => { active = false; };
+  }, [account?.id]);
+
+  useEffect(() => {
     if (!notesHydrated) return;
-    const timer = window.setTimeout(() => saveNotes(notes), 400);
+    if (account && !cloudNotesReady) return;
+    const timer = window.setTimeout(() => {
+      if (account) void saveCloudNote(account.id, title, notes).catch((error) => console.error("Could not save notes to Supabase:", error));
+      else saveNotes(notes);
+    }, 500);
     return () => window.clearTimeout(timer);
-  }, [notes, notesHydrated]);
+  }, [notes, notesHydrated, account, cloudNotesReady, title]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => saveNoteTitle(title), 350);
@@ -512,7 +539,7 @@ export function Home({
                       <Fernandez size={23} mood="happy" bob={false} /> Your note deck
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-ink/15 bg-paper px-2 py-1 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">
-                      <Icon name="lock" size={9} /> local only
+                      <Icon name="lock" size={9} /> {account ? "private cloud" : "guest · this device"}
                     </span>
                   </div>
 
