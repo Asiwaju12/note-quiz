@@ -168,10 +168,10 @@ export function DailyChallenge({
   }, []);
 
   const myLocal = loadLocalDaily(date);
-  const boardMe = board?.entries.find((entry) => entry.id === getPlayerId()) ?? null;
+  const boardMe = board?.entries.find((entry) => entry.id === (account?.id || getPlayerId())) ?? null;
   const bestLocal = myLocal.reduce((best, entry) => Math.max(best, entry.score), 0);
   const myBest = Math.max(bestLocal, boardMe?.score ?? 0);
-  const standing = board ? dailyStanding(board) : { rank: 0, entry: null };
+  const standing = board ? dailyStanding(board, account?.id || getPlayerId()) : { rank: 0, entry: null };
   const handle = account?.handle || loadInitials() || "YOU";
   const completed = Boolean(boardMe || myLocal.length > 0);
 
