@@ -811,7 +811,7 @@ One fact per line works best."}
                 </h2>
               </div>
               <p className="max-w-[290px] text-sm leading-relaxed text-muted">
-                Saved locally, ranked forever (or until you hit reset). Your notes never leave this device.
+                {account ? "Saved privately to your account and synced across devices." : "Guest notes stay on this device until you sign in."}
               </p>
             </div>
 
