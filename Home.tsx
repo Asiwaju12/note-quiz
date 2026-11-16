@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/utils/cn";
 import { parseNotes } from "@/game/parseNotes";
-import { clearCloudScores, loadCloudNote, loadCloudScores, saveCloudNote } from "./cloud";
+import { clearCloudScores, loadCloudNote, migrateLocalScores, saveCloudNote } from "./cloud";
 import { SAMPLE_DECK } from "@/game/deck";
 import type { Deck, Pace, ScoreEntry } from "@/game/types";
 import { PACES, paceSeconds } from "@/game/types";
@@ -256,7 +256,7 @@ export function Home({
     const refresh = () => {
       setPlayed(loadPlayed());
       if (account) {
-        void loadCloudScores().then((rows) => { if (active) setScores(rows); }).catch((error) => console.error("Could not load cloud scores:", error));
+        void migrateLocalScores(account.id, account.handle).then((rows) => { if (active) setScores(rows); }).catch((error) => console.error("Could not load or migrate cloud scores:", error));
       } else {
         setScores(loadScores());
       }
