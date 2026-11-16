@@ -219,7 +219,7 @@ export function AuthDialog({
                 <Fernandez size={28} mood="happy" bob={false} className="translate-y-[3px]" />
               </span>
               <span className="font-display text-[15px] font-extrabold tracking-[-0.03em]">recall <span className="font-serif text-[13px] font-normal italic text-muted">with Fernandez</span></span>
-              <span className="ml-auto rounded-full border border-ink/15 px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">local only</span>
+              <span className="ml-auto rounded-full border border-ink/15 px-2 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">cloud sync</span>
             </div>
             <div className="mb-4 flex items-center gap-1 rounded-full border border-ink/15 bg-paper/70 p-1" role="tablist" aria-label="Sign in or create a profile">
               {(
@@ -254,7 +254,7 @@ export function AuthDialog({
                 </h3>
                 <p className="mt-1.5 text-sm text-muted">Welcome, {successName}. Loading your board…</p>
                 <span className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-paper px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
-                  <Icon name="shield" size={11} /> local profile active
+                  <Icon name="shield" size={11} /> cloud profile active
                 </span>
               </div>
             ) : (
@@ -460,7 +460,7 @@ export function AuthDialog({
 
                 <p className="mt-3 flex items-start gap-1.5 font-mono text-[8px] leading-relaxed text-muted/85">
                   <Icon name="shield" size={10} className="mt-0.5 shrink-0" />
-                  Local profiles only. Credentials are stored in this browser and never sent anywhere. No password recovery.
+                  Your account is secured by Supabase Auth. Sign in from any device to access your profile.
                 </p>
               </>
             )}
