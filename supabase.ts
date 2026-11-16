@@ -115,7 +115,10 @@ export async function uploadPrivateFile(bucket: string, objectPath: string, file
     headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${session.access_token}`, "Content-Type": file.type || "application/octet-stream", "x-upsert": "false" },
     body: file,
   });
-  if (!response.ok) {\n    const detail = await response.json().catch(() => null);\n    throw new Error(String(detail?.message ?? detail?.error ?? "The file could not be uploaded."));\n  }
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(String(detail?.message ?? detail?.error ?? "The file could not be uploaded."));
+  }
 }
 
 export function onSupabaseSessionChange(callback: (session: SupabaseSession | null) => void): () => void {
