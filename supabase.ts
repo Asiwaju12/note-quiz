@@ -122,6 +122,55 @@ export async function uploadPrivateFile(bucket: string, objectPath: string, file
     throw new Error(String(detail?.message ?? detail?.error ?? "The file could not be uploaded."));
   }
 }
+/**
+ * Consume Supabase's browser implicit-flow callback after email verification.
+ * Validate the access token with Auth before persisting the returned session.
+ */
+export async function restoreAuthSessionFromUrl(): Promise<{ type: string | null; error: string | null }> {
+  const fragment = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  const params = new URLSearchParams(fragment);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  const type = params.get('type');
+  const callbackError = params.get('error_description') || params.get('error');
+
+  if (!accessToken && !refreshToken && !callbackError) return { type: null, error: null };
+
+  const cleanCallbackUrl = () => {
+    window.history.replaceState(window.history.state, document.title, `${window.location.pathname}${window.location.search}`);
+  };
+
+  if (callbackError) {
+    cleanCallbackUrl();
+    return { type, error: callbackError };
+  }
+  if (!accessToken || !refreshToken) {
+    cleanCallbackUrl();
+    return { type, error: 'This confirmation link is incomplete. Please request a new email.' };
+  }
+
+  try {
+    const user = await request<SupabaseUser>('/auth/v1/user', {}, accessToken);
+    const expiresIn = Number(params.get('expires_in')) || 3600;
+    const expiresAt = Number(params.get('expires_at')) || Math.floor(Date.now() / 1000) + expiresIn;
+    writeSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: expiresIn,
+      expires_at: expiresAt,
+      token_type: params.get('token_type') || 'bearer',
+      user,
+    });
+    cleanCallbackUrl();
+    return { type, error: null };
+  } catch (error) {
+    cleanCallbackUrl();
+    return {
+      type,
+      error: error instanceof Error ? error.message : 'We could not complete the confirmation link. Please sign in again.',
+    };
+  }
+}
 export function onSupabaseSessionChange(callback: (session: SupabaseSession | null) => void): () => void {
   const listener = () => callback(readSession());
   window.addEventListener(SESSION_EVENT, listener);
