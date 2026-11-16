@@ -148,7 +148,7 @@ export function saveLocalDaily(date: string, entries: DailyEntry[]): void {
   saveString(DAILY_KEY, JSON.stringify(map));
 }
 
-function dedupefunction dedupe(entries: DailyEntry[]): DailyEntry[] {
+function dedupe(entries: DailyEntry[]): DailyEntry[] {
   const bestById = new Map<string, DailyEntry>();
   entries.map(sanitizeEntry).forEach((entry) => {
     if (!entry) return;
