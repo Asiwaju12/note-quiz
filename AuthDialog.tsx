@@ -441,6 +441,7 @@ export function AuthDialog({
                 </form>
 
 {!required && (
+                  <>
                 <div className="my-3 flex items-center gap-2">
                   <span className="h-px flex-1 bg-ink/10" />
                   <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-muted">or</span>
@@ -465,6 +466,7 @@ export function AuthDialog({
                   </button>
                 </div>
 
+                  </>
                 )}
 
                 <p className="mt-3 flex items-start gap-1.5 font-mono text-[8px] leading-relaxed text-muted/85">
