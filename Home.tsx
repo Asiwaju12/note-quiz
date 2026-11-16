@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/utils/cn";
 import { parseNotes } from "@/game/parseNotes";
-import { loadCloudNote, saveCloudNote } from "./cloud";
+import { clearCloudScores, loadCloudNote, loadCloudScores, saveCloudNote } from "./cloud";
 import { SAMPLE_DECK } from "@/game/deck";
 import type { Deck, Pace, ScoreEntry } from "@/game/types";
 import { PACES, paceSeconds } from "@/game/types";
@@ -252,20 +252,26 @@ export function Home({
   }, [title]);
 
   useEffect(() => {
+    let active = true;
     const refresh = () => {
-      setScores(loadScores());
       setPlayed(loadPlayed());
+      if (account) {
+        void loadCloudScores().then((rows) => { if (active) setScores(rows); }).catch((error) => console.error("Could not load cloud scores:", error));
+      } else {
+        setScores(loadScores());
+      }
     };
     refresh();
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
+      active = false;
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, []);
+  }, [account?.id]);
 
   const bestScore = scores[0]?.score ?? 0;
   const bestStreak = scores.reduce((best, entry) => Math.max(best, entry.streak), 0);
@@ -347,10 +353,11 @@ export function Home({
     sfx.tap();
   };
 
-  const handleClearBoard = () => {
+  const handleClearBoard = async () => {
     if (scores.length === 0) return;
-    if (window.confirm("Clear every saved score on this device?")) {
-      clearScores();
+    if (window.confirm(account ? "Clear your saved scores from your account?" : "Clear every saved score on this device?")) {
+      if (account) await clearCloudScores();
+      else clearScores();
       window.location.reload();
     }
   };
