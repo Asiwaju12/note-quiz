@@ -120,9 +120,11 @@ export function DailyBoardList({
 export function DailyChallenge({
   account,
   onStartDaily,
+  onSignIn,
 }: {
   account: PublicAccount | null;
   onStartDaily: (deck: Deck, date: string) => void;
+  onSignIn: () => void;
 }) {
   const [date, setDate] = useState(() => dailyKey());
   const [board, setBoard] = useState<DailyBoard | null>(null);
@@ -177,6 +179,10 @@ export function DailyChallenge({
 
   const handlePlay = () => {
     sfx.tap();
+    if (!account) {
+      onSignIn();
+      return;
+    }
     onStartDaily(buildDailyDeck(date), date);
   };
 
@@ -291,8 +297,8 @@ export function DailyChallenge({
                   <Icon name="arrow" size={17} className="transition-transform group-hover:translate-x-0.5" />
                 </button>
                 {!account && (
-                  <p className="text-center font-mono text-[8px] uppercase tracking-[0.08em] text-cream/35">
-                    Guest tag: {handle} · sign in to use your profile tag
+                  <p className="text-center font-mono text-[8px] uppercase tracking-[0.08em] text-cream/55">
+                    Sign in or create an account to play and join today's leaderboard
                   </p>
                 )}
               </div>
