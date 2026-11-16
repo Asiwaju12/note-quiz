@@ -214,8 +214,7 @@ async function fetchRemote(date: string): Promise<DailyEntry[]> {
     if (!response.ok) throw new Error(`Leaderboard unavailable (${response.status})`);
     return response.text();
   });
-  const lines = result.split("
-").filter(Boolean);
+  const lines = result.split("\n").filter(Boolean);
   const collected: DailyEntry[] = [];
   for (const line of lines) {
     try {
