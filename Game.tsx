@@ -24,7 +24,7 @@ import {
   saveScore,
 } from "@/game/storage";
 import type { PublicAccount } from "@/game/auth";
-import { loadCloudScores, saveCloudScore } from "./cloud";
+import { migrateLocalScores, saveCloudScore } from "./cloud";
 import {
   dailyStanding,
   dayLabel,
@@ -374,7 +374,7 @@ export function Game({
   useEffect(() => {
     if (!account) return;
     let active = true;
-    void loadCloudScores().then((scores) => { if (active) setBoard(scores); }).catch((error) => console.error("Could not load cloud scores:", error));
+    void migrateLocalScores(account.id, account.handle).then((scores) => { if (active) setBoard(scores); }).catch((error) => console.error("Could not load or migrate cloud scores:", error));
     return () => { active = false; };
   }, [account?.id]);
 
