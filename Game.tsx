@@ -369,7 +369,14 @@ export function Game({
   const savedRunRef = useRef<string | null>(null);
   const initialsRef = useRef(initials);
   const [board, setBoard] = useState<ScoreEntry[]>(() => loadScores());
-  initialsRef.current = initials;\n\n  useEffect(() => {\n    if (!account) return;\n    let active = true;\n    void loadCloudScores().then((scores) => { if (active) setBoard(scores); }).catch((error) => console.error("Could not load cloud scores:", error));\n    return () => { active = false; };\n  }, [account?.id]);
+  initialsRef.current = initials;
+
+  useEffect(() => {
+    if (!account) return;
+    let active = true;
+    void loadCloudScores().then((scores) => { if (active) setBoard(scores); }).catch((error) => console.error("Could not load cloud scores:", error));
+    return () => { active = false; };
+  }, [account?.id]);
 
   const question = state.queue[state.index];
   const limit = daily ? DAILY_SECONDS : levelTime(state.level, state.pace);
