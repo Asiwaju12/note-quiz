@@ -490,14 +490,14 @@ export function Game({
       accuracy: state.answered > 0 ? Math.round((state.correct / state.answered) * 100) : 0,
       date: new Date().toISOString(),
     };
-    saveScore(entry);
+    if (account) {\n      void saveCloudScore(account.id, account.handle, entry).then(setBoard).catch((error) => console.error("Could not save score to Supabase:", error));\n    } else {\n      saveScore(entry);\n    }
     if (savedRunRef.current !== state.runId) {
       savedRunRef.current = state.runId;
       savePlayed(loadPlayed() + 1);
     }
-    setBoard(loadScores());
+    if (!account) setBoard(loadScores());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.phase, state.runId]);
+  }, [state.phase, state.runId, account]);
 
   useEffect(() => {
     if (state.phase !== "over") return;
