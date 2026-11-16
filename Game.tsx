@@ -1088,6 +1088,11 @@ function Results({
 
   useEffect(() => {
     if (!daily || !dailyDate || submittedRef.current) return;
+    if (!account) {
+      setSubmittingDaily(false);
+      setDailyBoard(null);
+      return;
+    }
     submittedRef.current = true;
     setSubmittingDaily(true);
     submitDailyScore(dailyDate, {
@@ -1102,7 +1107,7 @@ function Results({
       .finally(() => setSubmittingDaily(false));
     // The run result is fixed at mount; this must submit exactly once.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [daily, dailyDate]);
+  }, [daily, dailyDate, account?.id]);
 
   const dailyStandingResult = dailyBoard ? dailyStanding(dailyBoard, account?.id || undefined) : { rank: 0, entry: null };
 
@@ -1191,7 +1196,7 @@ function Results({
               </span>
               <span className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">
                 <Icon name={account || daily ? "shield" : "check"} size={10} />{" "}
-                {daily ? "posted by tag only" : account ? "stored on this device" : "saved on this device"}
+                {daily ? "saved to your account" : account ? "stored on this device" : "saved on this device"}
               </span>
             </div>
 
