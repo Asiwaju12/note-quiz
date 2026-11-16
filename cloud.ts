@@ -86,7 +86,7 @@ export async function loadCloudDecks(): Promise<SavedCloudDeck[]> {
   );
 }
 export async function saveCloudDeck(deck: import("./types").Deck): Promise<SavedCloudDeck> {
-  const rows = await supabaseRest<SavedCloudDeck[]>("study_decks?select=id,title,kind,questions,created_at,updated_at", "", {
+  const rows = await supabaseRest<SavedCloudDeck[]>("study_decks", "select=id,title,kind,questions,created_at,updated_at", {
     method: "POST",
     headers: { Prefer: "return=representation" },
     body: JSON.stringify({ title: deck.title, kind: deck.kind, questions: deck.questions }),
