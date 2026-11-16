@@ -821,7 +821,7 @@ One fact per line works best.`}
 
         <MarqueeStrip />
 
-        <DailyChallenge account={account} onStartDaily={onStartDaily} />
+        <DailyChallenge account={account} onStartDaily={onStartDaily} onSignIn={onSignIn} />
 
         <section id="how" className="relative mx-auto w-full max-w-[1240px] scroll-mt-24 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
           <div className="mb-9 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
