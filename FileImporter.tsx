@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import { cn } from "@/utils/cn";
 import { extractFiles, type FileExtraction, type UploadKind } from "@/game/files";
 import { sfx } from "@/game/sound";
+import type { PublicAccount } from "@/game/auth";
+import { uploadStudyFiles } from "./cloud";
 import { Icon } from "./Icons";
 
 const KIND_ICON: Record<UploadKind, "file" | "upload" | "note"> = {
@@ -18,7 +20,7 @@ const KIND_LABEL: Record<UploadKind, string> = {
   text: "Text",
 };
 
-export function FileImporter({ onExtract }: { onExtract: (result: FileExtraction) => void }) {
+export function FileImporter({ onExtract, account }: { onExtract: (result: FileExtraction) => void; account: PublicAccount | null }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -32,10 +34,14 @@ export function FileImporter({ onExtract }: { onExtract: (result: FileExtraction
     setBusy(true);
     try {
       const result = await extractFiles(files);
+      if (account) {
+        const acceptedNames = new Set(result.files.map((item) => item.name));
+        await uploadStudyFiles(account.id, files.filter((file) => acceptedNames.has(file.name)));
+      }
       sfx.correct(3);
       onExtract(result);
     } catch {
-      setError("That upload didn't finish. Try again, or paste your notes instead.");
+      setError("That upload or cloud save didn't finish. Try again, or paste your notes instead.");
       sfx.wrong();
     } finally {
       setBusy(false);
@@ -130,7 +136,7 @@ export function FileImporter({ onExtract }: { onExtract: (result: FileExtraction
                 or add a photo of your notes
               </button>
               <span className="ml-auto hidden items-center gap-1 font-mono text-[8px] uppercase tracking-[0.08em] text-muted sm:flex">
-                <Icon name="lock" size={9} /> local only
+                <Icon name="lock" size={9} /> {account ? "private cloud" : "guest · this device"}
               </span>
             </div>
 
