@@ -24,6 +24,7 @@ import {
   saveScore,
 } from "@/game/storage";
 import type { PublicAccount } from "@/game/auth";
+import { loadCloudScores, saveCloudScore } from "./cloud";
 import {
   dailyStanding,
   dayLabel,
@@ -368,7 +369,7 @@ export function Game({
   const savedRunRef = useRef<string | null>(null);
   const initialsRef = useRef(initials);
   const [board, setBoard] = useState<ScoreEntry[]>(() => loadScores());
-  initialsRef.current = initials;
+  initialsRef.current = initials;\n\n  useEffect(() => {\n    if (!account) return;\n    let active = true;\n    void loadCloudScores().then((scores) => { if (active) setBoard(scores); }).catch((error) => console.error("Could not load cloud scores:", error));\n    return () => { active = false; };\n  }, [account?.id]);
 
   const question = state.queue[state.index];
   const limit = daily ? DAILY_SECONDS : levelTime(state.level, state.pace);
@@ -496,7 +497,7 @@ export function Game({
     setBoard((previous) =>
       previous.map((entry) => (entry.id === state.runId ? { ...entry, name: initials || "YOU" } : entry)),
     );
-    renameScore(state.runId, initials || "YOU");
+    if (!account) renameScore(state.runId, initials || "YOU");
   }, [initials, state.phase, state.runId]);
 
   useEffect(() => {
