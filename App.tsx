@@ -30,7 +30,18 @@ export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const particles = useRef<ParticleHandle | null>(null);
 
-  useEffect(() => {\n    let active = true;\n    void loadSession().then((session) => {\n      if (!active) return;\n      setAccount(session);\n      if (session) setInitials(initialsFor(session));\n    });\n    return () => { active = false; };\n  }, []);\n\n  useEffect(() => {\n    setSoundMuted(muted);
+  useEffect(() => {
+    let active = true;
+    void loadSession().then((session) => {
+      if (!active) return;
+      setAccount(session);
+      if (session) setInitials(initialsFor(session));
+    });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    setSoundMuted(muted);
     saveMuted(muted);
   }, [muted]);
 
