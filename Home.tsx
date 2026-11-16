@@ -638,7 +638,12 @@ export function Home({
                             }
                           }}
                           rows={7}
-                          placeholder={"Paste notes, facts, definitions — anything.\n\nThe hippocampus encodes long-term memories.\nNeuroplasticity: the brain's ability to rewire.\n\nOne fact per line works best."}
+                          placeholder={"Paste notes, facts, definitions — anything.
+
+The hippocampus encodes long-term memories.
+Neuroplasticity: the brain's ability to rewire.
+
+One fact per line works best."}
                           className="paper-lines hide-scrollbar h-[186px] w-full resize-none rounded-xl border-2 border-ink/15 bg-card/45 p-3 text-[13px] leading-[31px] text-ink placeholder:text-muted/55 focus:border-ink focus:bg-card/70 focus:outline-none focus:ring-2 focus:ring-lime"
                         />
                       </div>
