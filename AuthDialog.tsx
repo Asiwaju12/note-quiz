@@ -266,7 +266,7 @@ export function AuthDialog({
                   <p className="mt-0.5 text-[12px] leading-relaxed text-muted">
                     {mode === "signin"
                       ? "Pick up where your brain left off."
-                      : "One local profile. A name on every score."}
+                      : "One secure cloud profile. Your name follows every score."}
                   </p>
                 </div>
 
