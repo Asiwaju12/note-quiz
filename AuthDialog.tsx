@@ -20,11 +20,15 @@ const emptySignIn = { email: "", password: "" };
 export function AuthDialog({
   open,
   initialMode = "signin",
+  required = false,
+  initialError = null,
   onClose,
   onAuth,
 }: {
   open: boolean;
   initialMode?: Mode;
+  required?: boolean;
+  initialError?: string | null;
   onClose: () => void;
   onAuth: (account: PublicAccount) => void;
 }) {
@@ -43,19 +47,19 @@ export function AuthDialog({
   useEffect(() => {
     if (!open) return;
     setMode(initialMode);
-    setError(null);
+    setError(initialError);
     setErrorField(null);
     setBusy(false);
     setSuccessName(null);
     setShowPassword(false);
     const focusTimer = window.setTimeout(() => firstFieldRef.current?.focus(), 220);
     return () => window.clearTimeout(focusTimer);
-  }, [open, initialMode]);
+  }, [open, initialMode, initialError]);
 
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape" && !required) onClose();
     };
     document.addEventListener("keydown", onKeyDown);
     const previousOverflow = document.body.style.overflow;
@@ -64,7 +68,7 @@ export function AuthDialog({
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [open, onClose, required]);
 
   useEffect(() => {
     return () => {
@@ -145,7 +149,7 @@ export function AuthDialog({
       className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-night/75 p-3 backdrop-blur-[3px] sm:p-5"
       role="presentation"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (!required && event.target === event.currentTarget) onClose();
       }}
     >
       <div
@@ -154,14 +158,16 @@ export function AuthDialog({
         aria-labelledby="auth-title"
         className="relative my-auto max-h-[calc(100dvh-1rem)] w-full max-w-[850px] animate-scale-in overflow-y-auto rounded-[24px] border-2 border-ink bg-card pt-8 text-ink shadow-[8px_8px_0_#CBF54A] sm:pt-0 sm:shadow-[10px_10px_0_#CBF54A]"
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close sign in"
-          className="absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-card shadow-[2px_2px_0_#1B1A14] transition-transform hover:rotate-90"
-        >
-          <Icon name="close" size={13} />
-        </button>
+        {!required && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close sign in"
+            className="absolute right-3 top-3 z-20 grid h-8 w-8 place-items-center rounded-full border-2 border-ink bg-card shadow-[2px_2px_0_#1B1A14] transition-transform hover:rotate-90"
+          >
+            <Icon name="close" size={13} />
+          </button>
+        )}
 
         <div className="grid lg:grid-cols-[0.82fr_1.18fr]">
           {/* Brand panel */}
@@ -370,7 +376,7 @@ export function AuthDialog({
                           else setSignUpForm((previous) => ({ ...previous, password }));
                           clearError();
                         }}
-                        placeholder={mode === "signup" ? "At least 6 characters" : "Your password"}
+                        placeholder={mode === "signup" ? "At least 8 characters" : "Your password"}
                         autoComplete={mode === "signin" ? "current-password" : "new-password"}
                         aria-invalid={Boolean(fieldError("password"))}
                         className={cn(
@@ -434,6 +440,7 @@ export function AuthDialog({
                   </button>
                 </form>
 
+{!required && (
                 <div className="my-3 flex items-center gap-2">
                   <span className="h-px flex-1 bg-ink/10" />
                   <span className="font-mono text-[8px] uppercase tracking-[0.14em] text-muted">or</span>
@@ -457,6 +464,8 @@ export function AuthDialog({
                     <Icon name="play" size={11} /> Continue as guest
                   </button>
                 </div>
+
+                )}
 
                 <p className="mt-3 flex items-start gap-1.5 font-mono text-[8px] leading-relaxed text-muted/85">
                   <Icon name="shield" size={10} className="mt-0.5 shrink-0" />
