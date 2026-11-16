@@ -131,9 +131,9 @@ export function AuthDialog({
   const passwordStrength =
     signUpForm.password.length === 0
       ? 0
-      : signUpForm.password.length >= 10
+      : signUpForm.password.length >= 12
         ? 3
-        : signUpForm.password.length >= 6
+        : signUpForm.password.length >= 8
           ? 2
           : 1;
   const strengthLabels = ["", "a little short", "solid", "fort knox"];
