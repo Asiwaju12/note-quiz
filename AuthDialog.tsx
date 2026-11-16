@@ -93,27 +93,26 @@ export function AuthDialog({
     }, 480);
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (busy) return;
     setError(null);
     setErrorField(null);
     setBusy(true);
-    const run = () => {
-      if (mode === "signin") {
-        finish(signIn(signInForm.email, signInForm.password));
-      } else {
-        finish(
-          signUp({
+    try {
+      const result = mode === "signin"
+        ? await signIn(signInForm.email, signInForm.password)
+        : await signUp({
             name: signUpForm.name,
             email: signUpForm.email,
             handle: signUpForm.handle || deriveHandle(signUpForm.name),
             password: signUpForm.password,
-          }),
-        );
-      }
-    };
-    timerRef.current = window.setTimeout(run, 360);
+          });
+      finish(result);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Authentication failed.");
+      setBusy(false);
+    }
   };
 
   const switchMode = (next: Mode) => {
@@ -123,10 +122,10 @@ export function AuthDialog({
     setShowPassword(false);
   };
 
-  const handleDemo = () => {
+  const handleDemo = async () => {
     setBusy(true);
     setError(null);
-    timerRef.current = window.setTimeout(() => finish(signInDemo()), 300);
+    finish(await signInDemo());
   };
 
   const passwordStrength =
@@ -186,14 +185,14 @@ export function AuthDialog({
                 Your notes. <span className="font-serif font-normal italic text-lime">Your name</span> on the board.
               </h2>
               <p className="mt-2 max-w-[260px] text-[12px] leading-relaxed text-cream/55 lg:text-[13px]">
-                Sign in once and every run is stamped with your profile. Still local, still no cloud, still three hearts.
+                Sign in once and every run is stamped with your profile. Your profile follows you across devices, with secure cloud sign-in.
               </p>
             </div>
 
             <ul className="relative mt-4 grid gap-1.5 text-[11px] text-cream/65 sm:grid-cols-2 lg:mt-6 lg:grid-cols-1">
               {[
                 ["save", "Scores tied to your profile"],
-                ["shield", "Stored on this device only"],
+                ["shield", "Secure cloud profile"],
                 ["bolt", "Start faster, no setup ritual"],
               ].map(([icon, text]) => (
                 <li key={text} className="flex items-center gap-2">
