@@ -29,11 +29,11 @@ export type DailySubmission = {
   streak: number;
 };
 
-const DAILY_KEYconst DAILY_KEY = "recall.daily.v1";
+const DAILY_KEY = "recall.daily.v1";
 const MAX_ENTRIES = 25;
 const MAX_SCORE = 99999;
 
-export function dailyKeyexport function dailyKey(date = new Date()): string {
+export function dailyKey(date = new Date()): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -236,7 +236,7 @@ export async function submitDailyScore(date: string, submission: DailySubmission
 
   return fetchDailyBoard(date);
 }
-export function dailyStanding(board: DailyBoard, playerId = getPlayerId()): { rank: number; entry: DailyEntry | null } {
+export function dailyStanding(board: DailyBoard, playerId = ""): { rank: number; entry: DailyEntry | null } {
   const index = board.entries.findIndex((entry) => entry.id === playerId);
   return { rank: index >= 0 ? index + 1 : 0, entry: index >= 0 ? board.entries[index] : null };
 }
