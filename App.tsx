@@ -21,11 +21,8 @@ export default function App() {
   const [pace, setPace] = useState<Pace>(() => loadPace());
   const [runMode, setRunMode] = useState<RunMode>("classic");
   const [dailyDate, setDailyDate] = useState("");
-  const [account, setAccount] = useState<PublicAccount | null>(() => loadSession());
-  const [initials, setInitials] = useState(() => {
-    const session = loadSession();
-    return session ? initialsFor(session) : loadInitials();
-  });
+  const [account, setAccount] = useState<PublicAccount | null>(null);
+  const [initials, setInitials] = useState(() => loadInitials());
   const [muted, setMuted] = useState(() => loadMuted());
   const [runKey, setRunKey] = useState(1);
   const [howToOpen, setHowToOpen] = useState(false);
@@ -33,8 +30,7 @@ export default function App() {
   const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const particles = useRef<ParticleHandle | null>(null);
 
-  useEffect(() => {
-    setSoundMuted(muted);
+  useEffect(() => {\n    let active = true;\n    void loadSession().then((session) => {\n      if (!active) return;\n      setAccount(session);\n      if (session) setInitials(initialsFor(session));\n    });\n    return () => { active = false; };\n  }, []);\n\n  useEffect(() => {\n    setSoundMuted(muted);
     saveMuted(muted);
   }, [muted]);
 
