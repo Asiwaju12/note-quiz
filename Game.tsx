@@ -1196,7 +1196,7 @@ function Results({
               </span>
               <span className="inline-flex items-center gap-1 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">
                 <Icon name={account || daily ? "shield" : "check"} size={10} />{" "}
-                {daily ? "saved to your account" : account ? "stored on this device" : "saved on this device"}
+                {daily ? dailyBoard?.online ? "saved to your account" : submittingDaily ? "saving your account score" : "score not confirmed" : account ? "stored on this device" : "saved on this device"}
               </span>
             </div>
 
@@ -1212,7 +1212,7 @@ function Results({
                 <div className="min-w-0 flex-1">
                   <p className="font-display text-[15px] font-extrabold leading-tight uppercase tracking-[0.08em]">Tag {dailyTag}</p>
                   <p className="font-mono text-[9px] uppercase tracking-[0.08em] text-muted">
-                    {dailyStandingResult.rank > 0 ? `Rank #${dailyStandingResult.rank} on today's shared board` : "Score saved to today's daily board"}
+                    {dailyStandingResult.rank > 0 ? `Rank #${dailyStandingResult.rank} on today's shared board` : dailyBoard?.online ? "Score saved to today's daily board" : submittingDaily ? "Saving your score to your account" : "Score could not be confirmed"}
                   </p>
                 </div>
                 <span className="hidden rounded-full border border-ink/20 bg-lime/60 px-2 py-1 font-mono text-[8px] uppercase tracking-[0.1em] sm:inline-flex sm:items-center sm:gap-1">
