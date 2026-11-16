@@ -103,6 +103,11 @@ export async function supabaseRest<T>(table: string, query: string, init: Reques
   if (!session) throw new Error("Please sign in to continue.");
   return request<T>(`/rest/v1/${table}?${query}`, init, session.access_token);
 }
+
+/** Public SELECT access governed by the table's anon RLS policies. */
+export async function supabasePublicRest<T>(table: string, query: string, init: RequestInit = {}): Promise<T> {
+  return request<T>(`/rest/v1/${table}?${query}`, init);
+}
 export async function uploadPrivateFile(bucket: string, objectPath: string, file: File): Promise<void> {
   const session = await supabaseAuth.getSession();
   if (!session) throw new Error("Please sign in to upload files.");
