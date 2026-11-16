@@ -70,3 +70,30 @@ export async function migrateLocalScores(userId: string, handle: string): Promis
     throw error;
   }
 }
+
+export type SavedCloudDeck = {
+  id: string;
+  title: string;
+  kind: "notes" | "sample";
+  questions: import("./types").Question[];
+  created_at: string;
+  updated_at: string;
+};
+export async function loadCloudDecks(): Promise<SavedCloudDeck[]> {
+  return supabaseRest<SavedCloudDeck[]>(
+    "study_decks",
+    "select=id,title,kind,questions,created_at,updated_at&order=updated_at.desc&limit=100",
+  );
+}
+export async function saveCloudDeck(deck: import("./types").Deck): Promise<SavedCloudDeck> {
+  const rows = await supabaseRest<SavedCloudDeck[]>("study_decks?select=id,title,kind,questions,created_at,updated_at", "", {
+    method: "POST",
+    headers: { Prefer: "return=representation" },
+    body: JSON.stringify({ title: deck.title, kind: deck.kind, questions: deck.questions }),
+  });
+  if (!rows[0]) throw new Error("The deck could not be saved.");
+  return rows[0];
+}
+export async function deleteCloudDeck(id: string): Promise<void> {
+  await supabaseRest<unknown>("study_decks", `id=eq.${encodeURIComponent(id)}`, { method: "DELETE" });
+}
