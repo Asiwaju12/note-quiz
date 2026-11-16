@@ -283,23 +283,33 @@ export async function fetchDailyBoard(date: string): Promise<DailyBoard> {
 export async function submitDailyScore(date: string, submission: DailySubmission): Promise<DailyBoard> {
   const session = await supabaseAuth.getSession().catch(() => null);
   if (session) {
-    await supabaseRest<unknown>(
+    const userId = session.user.id;
+    const existing = await supabaseRest<Array<{ id: string; score: number }>>(
       "daily_scores",
-      "on_conflict=user_id,score_date",
-      {
-        method: "POST",
-        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify({
-          user_id: session.user.id,
-          score_date: date,
-          handle: normalizeHandle(submission.handle),
-          score: Math.max(0, Math.min(MAX_SCORE, Math.round(submission.score))),
-          correct: submission.correct,
-          total: submission.total,
-          streak: submission.streak,
-        }),
-      },
+      `select=id,score&user_id=eq.${encodeURIComponent(userId)}&score_date=eq.${encodeURIComponent(date)}&limit=1`,
     );
+    const values = {
+      handle: normalizeHandle(submission.handle),
+      score: Math.max(0, Math.min(MAX_SCORE, Math.round(submission.score))),
+      correct: submission.correct,
+      total: submission.total,
+      streak: submission.streak,
+    };
+    if (existing[0]) {
+      if (values.score > existing[0].score) {
+        await supabaseRest<unknown>("daily_scores", `id=eq.${encodeURIComponent(existing[0].id)}`, {
+          method: "PATCH",
+          headers: { Prefer: "return=minimal" },
+          body: JSON.stringify(values),
+        });
+      }
+    } else {
+      await supabaseRest<unknown>("daily_scores", "select=id", {
+        method: "POST",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({ ...values, user_id: userId, score_date: date }),
+      });
+    }
     return fetchDailyBoard(date);
   }
   const mine = saveDailyAttempt(date, submission);
@@ -327,7 +337,6 @@ export async function submitDailyScore(date: string, submission: DailySubmission
     fetchedAt: Date.now(),
   };
 }
-
 export function dailyStanding(board: DailyBoard, playerId = getPlayerId()): { rank: number; entry: DailyEntry | null } {
   const index = board.entries.findIndex((entry) => entry.id === playerId);
   return { rank: index >= 0 ? index + 1 : 0, entry: index >= 0 ? board.entries[index] : null };
