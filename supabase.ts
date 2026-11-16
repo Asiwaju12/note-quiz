@@ -90,6 +90,8 @@ export const supabaseAuth = {
     const current = readSession();
     try {
       if (current) await request("/auth/v1/logout", { method: "POST" }, current.access_token);
+    } catch {
+      // Clear the local session even if the network is unavailable.
     } finally { writeSession(null); }
   },
   async resetPassword(email: string, redirectTo = window.location.origin) {
