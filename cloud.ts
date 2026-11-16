@@ -1,4 +1,4 @@
-import { supabaseAuth, supabaseRest } from "./supabase";
+import { supabaseAuth, supabaseRest, uploadPrivateFile } from "./supabase";
 import type { ScoreEntry } from "./types";
 
 export type CloudNote = { id: string; title: string; content: string; source_files: unknown[] };
@@ -35,4 +35,23 @@ export async function clearCloudScores(): Promise<void> {
   const session = await supabaseAuth.getSession();
   if (!session) throw new Error("Please sign in to clear cloud scores.");
   await supabaseRest<unknown>("quiz_scores", `user_id=eq.${encodeURIComponent(session.user.id)}&mode=eq.classic`, { method: "DELETE" });
+}
+
+export async function uploadStudyFiles(userId: string, files: File[]): Promise<void> {
+  for (const file of files) {
+    const objectPath = `${userId}/${crypto.randomUUID()}-${file.name.replace(/[^A-Za-z0-9._-]/g, "_")}`;
+    await uploadPrivateFile("study-documents", objectPath, file);
+    await supabaseRest<unknown>("study_documents", "select=id", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        user_id: userId,
+        bucket_id: "study-documents",
+        object_path: objectPath,
+        original_name: file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+      }),
+    });
+  }
 }
