@@ -77,8 +77,8 @@ export default function App() {
     window.setTimeout(() => particles.current?.burst(window.innerWidth / 2, window.innerHeight * 0.3, { count: 36 }), 120);
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut();
     setAccount(null);
     setInitials("YOU");
     saveInitials("YOU");
