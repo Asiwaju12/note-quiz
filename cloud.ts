@@ -1,5 +1,6 @@
 import { supabaseAuth, supabaseRest, uploadPrivateFile } from "./supabase";
 import type { ScoreEntry } from "./types";
+import { loadScores } from "./storage";
 
 export type CloudNote = { id: string; title: string; content: string; source_files: unknown[] };
 export async function loadCloudNote(): Promise<CloudNote | null> {
@@ -53,5 +54,19 @@ export async function uploadStudyFiles(userId: string, files: File[]): Promise<v
         size_bytes: file.size,
       }),
     });
+  }
+}
+
+export async function migrateLocalScores(userId: string, handle: string): Promise<ScoreEntry[]> {
+  const marker = `note-quiz.cloud-scores-migrated.${userId}`;
+  try {
+    if (window.localStorage.getItem(marker) === "true") return loadCloudScores();
+    const legacy = loadScores();
+    for (const entry of legacy) await saveCloudScore(userId, handle, entry);
+    window.localStorage.setItem(marker, "true");
+    return loadCloudScores();
+  } catch (error) {
+    console.error("Could not migrate local scores to Supabase:", error);
+    throw error;
   }
 }
