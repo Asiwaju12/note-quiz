@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { cn } from "@/utils/cn";
 import { parseNotes } from "@/game/parseNotes";
-import { clearCloudScores, loadCloudNote, migrateLocalScores, saveCloudNote } from "./cloud";
+import { clearCloudScores, deleteCloudDeck, loadCloudDecks, loadCloudNote, migrateLocalScores, saveCloudDeck, saveCloudNote, type SavedCloudDeck } from "./cloud";
 import { SAMPLE_DECK } from "@/game/deck";
 import type { Deck, Pace, ScoreEntry } from "@/game/types";
 import { PACES, paceSeconds } from "@/game/types";
@@ -183,6 +183,9 @@ export function Home({
   const [cloudNotesReady, setCloudNotesReady] = useState(false);
   const [title, setTitle] = useState(() => loadNoteTitle());
   const [generated, setGenerated] = useState<Deck | null>(null);
+  const [deckHistory, setDeckHistory] = useState<SavedCloudDeck[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sourceTab, setSourceTab] = useState<"paste" | "files">("paste");
   const [fileMeta, setFileMeta] = useState<FileExtraction | null>(null);
@@ -214,6 +217,23 @@ export function Home({
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!account) {
+      setDeckHistory([]);
+      return () => { active = false; };
+    }
+    setHistoryLoading(true);
+    void loadCloudDecks().then((rows) => {
+      if (active) setDeckHistory(rows);
+    }).catch((loadError) => {
+      console.error("Could not load deck history:", loadError);
+    }).finally(() => {
+      if (active) setHistoryLoading(false);
+    });
+    return () => { active = false; };
+  }, [account?.id]);
 
   useEffect(() => {
     let active = true;
@@ -298,6 +318,12 @@ export function Home({
     setError(null);
     setGenerated(result.deck);
     onDeckChange(result.deck);
+    if (account) {
+      void saveCloudDeck(result.deck).then((saved) => setDeckHistory((current) => [saved, ...current.filter((item) => item.id !== saved.id)].slice(0, 100))).catch((saveError) => {
+        console.error("Could not save deck history:", saveError);
+        setError("Your quiz was created, but we could not save it to your deck history. Please try again.");
+      });
+    }
     return result.deck;
   };
 
@@ -378,6 +404,52 @@ export function Home({
 
   return (
     <div className="grain relative min-h-dvh overflow-x-hidden bg-paper">
+      <div className="relative z-30 mx-auto flex w-full max-w-[1240px] justify-end px-4 pt-3 sm:px-6 lg:px-8">
+        <button type="button" onClick={() => { setHistoryOpen(true); sfx.tap(); }}
+          className="inline-flex items-center gap-2 rounded-lg border-2 border-ink bg-card px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-ink shadow-hard-sm transition-transform hover:-translate-y-0.5">
+          <Icon name="history" size={14} /> Deck history
+          {account && <span className="rounded-full bg-lime px-1.5 py-0.5 text-[9px]">{deckHistory.length}</span>}
+        </button>
+      </div>
+      {historyOpen && (
+        <div className="fixed inset-0 z-[80]">
+          <button type="button" aria-label="Close deck history" onClick={() => setHistoryOpen(false)} className="absolute inset-0 bg-ink/45" />
+          <aside className="absolute inset-y-0 right-0 flex w-full max-w-[390px] flex-col border-l-2 border-ink bg-paper shadow-[-8px_0_0_rgba(27,26,20,0.12)]">
+            <div className="flex items-center justify-between border-b-2 border-ink px-5 py-4">
+              <div><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted">Your library</p><h2 className="font-display text-2xl font-extrabold">Deck history</h2></div>
+              <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border-2 border-ink bg-card"><Icon name="x" size={17} /></button>
+            </div>
+            {!account ? (
+              <div className="m-5 rounded-xl border-2 border-dashed border-ink/30 bg-card p-5 text-center">
+                <Icon name="cloud" size={26} /><p className="mt-3 font-display text-lg font-bold">Sign in to save your decks</p>
+                <p className="mt-1 text-sm text-muted">Your saved decks will follow you across devices.</p>
+                <button type="button" onClick={() => { setHistoryOpen(false); onSignIn(); }} className="mt-4 rounded-lg border-2 border-ink bg-lime px-4 py-2 font-display font-bold">Sign in</button>
+              </div>
+            ) : historyLoading ? <p className="p-5 text-sm text-muted">Loading your decks…</p>
+            : deckHistory.length === 0 ? <div className="p-5 text-sm text-muted">Your saved decks will appear here when you generate your first quiz.</div>
+            : (
+              <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {deckHistory.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 rounded-xl border-2 border-ink/15 bg-card p-3">
+                    <button type="button" onClick={() => {
+                      const restored: Deck = { title: item.title, kind: item.kind, questions: item.questions };
+                      setGenerated(restored); setTitle(item.title); onDeckChange(restored); setHistoryOpen(false); setError(null); sfx.tap();
+                    }} className="min-w-0 flex-1 text-left">
+                      <span className="block truncate font-display text-[15px] font-bold">{item.title}</span>
+                      <span className="mt-0.5 block font-mono text-[9px] uppercase tracking-[0.08em] text-muted">{item.questions.length} questions · {new Date(item.created_at).toLocaleDateString()}</span>
+                    </button>
+                    <button type="button" aria-label={`Delete ${item.title}`} onClick={async () => {
+                      if (!window.confirm(`Delete “${item.title}” from your deck history?`)) return;
+                      try { await deleteCloudDeck(item.id); setDeckHistory((current) => current.filter((deckItem) => deckItem.id !== item.id)); }
+                      catch (deleteError) { console.error("Could not delete deck:", deleteError); }
+                    }} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-ink/20 text-muted hover:border-coral hover:text-coral"><Icon name="trash" size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </aside>
+        </div>
+      )}
       <SiteHeader
         account={account}
         muted={muted}
