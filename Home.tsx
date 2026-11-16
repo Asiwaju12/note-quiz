@@ -407,7 +407,7 @@ export function Home({
       <div className="relative z-30 mx-auto flex w-full max-w-[1240px] justify-end px-4 pt-3 sm:px-6 lg:px-8">
         <button type="button" onClick={() => { setHistoryOpen(true); sfx.tap(); }}
           className="inline-flex items-center gap-2 rounded-lg border-2 border-ink bg-card px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-[0.1em] text-ink shadow-hard-sm transition-transform hover:-translate-y-0.5">
-          <Icon name="history" size={14} /> Deck history
+          <Icon name="layers" size={14} /> Deck history
           {account && <span className="rounded-full bg-lime px-1.5 py-0.5 text-[9px]">{deckHistory.length}</span>}
         </button>
       </div>
@@ -417,11 +417,11 @@ export function Home({
           <aside className="absolute inset-y-0 right-0 flex w-full max-w-[390px] flex-col border-l-2 border-ink bg-paper shadow-[-8px_0_0_rgba(27,26,20,0.12)]">
             <div className="flex items-center justify-between border-b-2 border-ink px-5 py-4">
               <div><p className="font-mono text-[9px] uppercase tracking-[0.16em] text-muted">Your library</p><h2 className="font-display text-2xl font-extrabold">Deck history</h2></div>
-              <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border-2 border-ink bg-card"><Icon name="x" size={17} /></button>
+              <button type="button" onClick={() => setHistoryOpen(false)} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border-2 border-ink bg-card"><Icon name="close" size={17} /></button>
             </div>
             {!account ? (
               <div className="m-5 rounded-xl border-2 border-dashed border-ink/30 bg-card p-5 text-center">
-                <Icon name="cloud" size={26} /><p className="mt-3 font-display text-lg font-bold">Sign in to save your decks</p>
+                <Icon name="lock" size={26} /><p className="mt-3 font-display text-lg font-bold">Sign in to save your decks</p>
                 <p className="mt-1 text-sm text-muted">Your saved decks will follow you across devices.</p>
                 <button type="button" onClick={() => { setHistoryOpen(false); onSignIn(); }} className="mt-4 rounded-lg border-2 border-ink bg-lime px-4 py-2 font-display font-bold">Sign in</button>
               </div>
