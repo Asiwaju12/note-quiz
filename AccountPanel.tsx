@@ -37,7 +37,7 @@ export function AccountPanel({
                 <span className="rounded-full border border-ink/20 bg-paper px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-[0.1em] text-muted">no profile</span>
               </div>
               <p className="mt-0.5 max-w-[380px] text-[11px] leading-snug text-muted">
-                Sign in to put your name on every run. Profiles live entirely in this browser.
+                Sign in to save your profile and scores across devices.
               </p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export function AccountPanel({
               <span className="font-mono text-[9px] uppercase tracking-[0.1em] text-muted">tag {account.handle}</span>
               <span className="h-1 w-1 rounded-full bg-ink/25" />
               <span className="inline-flex items-center gap-1 font-mono text-[9px] uppercase tracking-[0.1em] text-muted">
-                <Icon name="shield" size={9} /> local profile
+                <Icon name="shield" size={9} /> cloud profile
               </span>
             </div>
           </div>
