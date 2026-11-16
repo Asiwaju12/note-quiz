@@ -207,7 +207,7 @@ export async function submitDailyScore(date: string, submission: DailySubmission
   const existing = await findMine();
   if (existing[0]) {
     if (values.score > existing[0].score) {
-      await supabaseRest<unknown>("daily_scores", `id=eq.${encodeURIComponent(existing[0].id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+      await supabaseRest<unknown>("daily_scores", `id=eq.${encodeURIComponent(existing[0].id)}&user_id=eq.${encodeURIComponent(userId)}&score=lt.${values.score}`, {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
         body: JSON.stringify(values),
@@ -225,7 +225,7 @@ export async function submitDailyScore(date: string, submission: DailySubmission
       const raced = await findMine();
       if (!raced[0]) throw error;
       if (values.score > raced[0].score) {
-        await supabaseRest<unknown>("daily_scores", `id=eq.${encodeURIComponent(raced[0].id)}&user_id=eq.${encodeURIComponent(userId)}`, {
+        await supabaseRest<unknown>("daily_scores", `id=eq.${encodeURIComponent(raced[0].id)}&user_id=eq.${encodeURIComponent(userId)}&score=lt.${values.score}`, {
           method: "PATCH",
           headers: { Prefer: "return=minimal" },
           body: JSON.stringify(values),
