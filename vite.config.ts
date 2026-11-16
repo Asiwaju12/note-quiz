@@ -8,12 +8,20 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// https://vite.dev/config/
+// The checked-in project is currently flat (components, game and utils
+// files are at the repository root), so resolve the historical aliases there.
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "src"),
-    },
+    alias: [
+      {
+        find: /^@\/(?:components|game|utils)\//,
+        replacement: `${__dirname}/`,
+      },
+      {
+        find: "@",
+        replacement: __dirname,
+      },
+    ],
   },
 });
