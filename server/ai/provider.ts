@@ -14,10 +14,10 @@ export function getApiKey(): string {
 }
 export function friendlyAiError(error: unknown): { status: number; message: string } {
   const message = error instanceof Error ? error.message : "";
-  if (/API key not valid|invalid api key|unauthenticated/i.test(message)) return { status: 502, message: "Google Gemini rejected the server API key. Check GEMINI_API_KEY." };
-  if (/permission|not found|unsupported model/i.test(message)) return { status: 502, message: "The configured Gemini model is unavailable to this API key. Check AI_MODEL." };
+  if (/API key not valid|invalid api key|unauthenticated/i.test(message)) return { status: 502, message: "Recall AI is temporarily unavailable. Please try again later." };
+  if (/permission|not found|unsupported model/i.test(message)) return { status: 502, message: "Recall AI is temporarily unavailable. Please try again later." };
   if (/quota|resource exhausted|rate limit|429/i.test(message)) return { status: 429, message: "Recall AI is busy right now. Please try again in a moment." };
   if (/too large|token limit|maximum.*token/i.test(message)) return { status: 413, message: "This request is too large for the AI. Try a shorter question or document section." };
-  if (/fetch failed|network|timeout/i.test(message)) return { status: 503, message: "Couldn't reach Google Gemini. Please try again." };
-  return { status: 502, message: "Google Gemini returned an error. Please try again." };
+  if (/fetch failed|network|timeout/i.test(message)) return { status: 503, message: "Recall AI couldn't connect. Please check your connection and try again." };
+  return { status: 502, message: "Recall AI couldn't complete that response. Please try again." };
 }
