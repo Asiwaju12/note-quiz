@@ -1,0 +1,413 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-paper: #f4eeda;
+  --color-card: #fffcf2;
+  --color-ink: #1b1a14;
+  --color-night: #14130f;
+  --color-muted: #716b58;
+  --color-line: #d9d1b9;
+  --color-lime: #cbf54a;
+  --color-lime-deep: #a9d423;
+  --color-coral: #ff8061;
+  --color-lilac: #b9a6f2;
+  --color-sky: #a6dcf2;
+  --color-cream: #fbf7ea;
+
+  --shadow-hard: 4px 4px 0 #1b1a14;
+  --shadow-hard-sm: 3px 3px 0 #1b1a14;
+  --shadow-hard-lg: 7px 7px 0 #1b1a14;
+  --shadow-soft: 0 18px 50px -24px rgb(27 26 20 / 0.35);
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+
+  button,
+  textarea,
+  input {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-variation-settings: "opsz" 72;
+  }
+}
+
+@layer utilities {
+  .bg-dotgrid {
+    background-image: radial-gradient(rgb(27 26 20 / 0.13) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .bg-dotgrid-light {
+    background-image: radial-gradient(rgb(251 247 234 / 0.12) 1px, transparent 1px);
+    background-size: 26px 26px;
+  }
+
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    z-index: 1;
+  }
+
+  .press {
+    transition:
+      transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      box-shadow 140ms cubic-bezier(0.2, 0.8, 0.2, 1),
+      background-color 140ms ease;
+  }
+
+  .press:hover {
+    transform: translate(-1px, -2px);
+  }
+
+  .press:active {
+    transform: translate(3px, 3px) !important;
+    box-shadow: 0 0 0 0 var(--color-ink) !important;
+  }
+
+  .paper-lines {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 30px,
+      rgb(27 26 20 / 0.1) 30px,
+      rgb(27 26 20 / 0.1) 31px
+    );
+    line-height: 31px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .marquee-track {
+    animation: marquee 30s linear infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 9s ease-in-out infinite;
+  }
+
+  .animate-wiggle {
+    animation: wiggle 2.6s ease-in-out infinite;
+  }
+
+  .animate-pop {
+    animation: pop 320ms cubic-bezier(0.18, 0.9, 0.32, 1.2) both;
+  }
+
+  .animate-card-pop {
+    animation: card-pop 380ms cubic-bezier(0.18, 0.9, 0.32, 1.2) both;
+  }
+
+  .animate-shake {
+    animation: shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 220ms ease-out both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 300ms cubic-bezier(0.18, 0.9, 0.32, 1.2) both;
+  }
+
+  .animate-score-float {
+    animation: score-float 900ms ease-out both;
+  }
+
+  .animate-heart-loss {
+    animation: heart-loss 520ms ease-out both;
+  }
+
+  .animate-glow {
+    animation: glow 2.4s ease-in-out infinite;
+  }
+
+  .animate-breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin 14s linear infinite;
+  }
+
+  .safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--float-rotate, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(var(--float-rotate, 0deg));
+  }
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(3deg);
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes card-pop {
+  0% {
+    transform: scale(0.985);
+  }
+  55% {
+    transform: scale(1.008);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translate3d(-2px, 1px, 0) rotate(-0.2deg);
+  }
+  20%,
+  80% {
+    transform: translate3d(4px, -2px, 0) rotate(0.3deg);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-7px, 1px, 0) rotate(-0.4deg);
+  }
+  40%,
+  60% {
+    transform: translate3d(7px, -1px, 0) rotate(0.4deg);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes score-float {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  22% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-10px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(0.96);
+  }
+}
+
+@keyframes heart-loss {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.35) rotate(-10deg);
+  }
+  60% {
+    transform: scale(0.85) rotate(8deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(203 245 74 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(203 245 74 / 0);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1) rotate(-2deg);
+  }
+  50% {
+    transform: scale(1.045) rotate(1deg);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fernandez-bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.6deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1.2deg);
+  }
+}
+
+@keyframes fernandez-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.12);
+  }
+}
+
+.fernandez-bob {
+  animation: fernandez-bob 4.4s ease-in-out infinite;
+  transform-origin: 60px 80px;
+}
+
+.fernandez-blink {
+  animation: fernandez-blink 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
