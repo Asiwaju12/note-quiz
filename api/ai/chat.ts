@@ -36,7 +36,7 @@ export async function POST(request: Request): Promise<Response> {
   contents.push({ role: "user", parts: [{ text: buildChatUserContent(body) }] });
   return ndjsonStream(async (send, signal) => {
     try {
-      await streamGeminiText({ system: TUTOR_SYSTEM, contents, maxOutputTokens: 16000, signal, onText: text => send({ t: "delta", text }) });
+      await streamGeminiText({ system: TUTOR_SYSTEM, contents, maxOutputTokens: 8192, signal, onText: text => send({ t: "delta", text }) });
       send({ t: "done", stop: "STOP" });
     } catch (error) {
       if (signal.aborted) return;
