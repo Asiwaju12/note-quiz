@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { AiStatus } from "../../src/lib/ai/contract";
+import type { AiStatus } from "../../src/lib/ai/contract.js";
 
 /** GET /api/ai/status — reports AI configuration without exposing secrets. */
 export async function GET(): Promise<Response> {
