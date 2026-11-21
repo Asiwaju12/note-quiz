@@ -121,13 +121,20 @@ export function AccountProvider({ children }: { children: ReactNode }) {
         setAuthOpen(false);
       },
       signOut: async () => {
-        try {
-          if (account?.id && configured) await flushCloudSync(account.id);
-        } catch (error) {
-          console.warn("Final cloud sync did not complete before sign-out:", error);
+        // Give the last queued sync a short opportunity to finish, but never
+        // let an offline or stalled request block signing out indefinitely.
+        if (account?.id && configured) {
+          try {
+            await Promise.race([
+              flushCloudSync(account.id),
+              new Promise<void>((resolve) => window.setTimeout(resolve, 1500)),
+            ]);
+          } catch (error) {
+            console.warn("Final cloud sync did not complete before sign-out:", error);
+          }
         }
-        await supabaseSignOut();
         setAccountState(null);
+        await supabaseSignOut();
       },
       setAccount: setAccountState,
     };
