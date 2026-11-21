@@ -42,13 +42,26 @@ export class HttpError extends Error {
  */
 export async function authorize(request: Request): Promise<{ userId: string | null }> {
   if ((process.env.AI_REQUIRE_AUTH ?? "").toLowerCase() !== "true") return { userId: null };
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  // Prefer the exact Supabase project/key used by the browser sign-in flow.
+  // Legacy server-side SUPABASE_* variables may belong to an older project.
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!url || !key) throw new HttpError(500, "AI_REQUIRE_AUTH is on but Supabase is not configured on the server.");
   if (!token) throw new HttpError(401, "Please sign in to use Recall AI.");
-  const response = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: `Bearer ${token}` } });
-  if (!response.ok) throw new HttpError(401, "Your session has expired. Please sign in again.");
+  const response = await fetch(`${url.replace(/\\/$/, "")}/auth/v1/user`, {
+    headers: { apikey: key, Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    // Log only the upstream status and safe error code; never log access tokens.
+    const authError = await response.json().catch(() => null) as { code?: string; error?: string; msg?: string } | null;
+    console.warn("[recall-api] Supabase token validation failed", {
+      status: response.status,
+      code: authError?.code ?? authError?.error ?? "unknown",
+    });
+    throw new HttpError(401, "Your session could not be verified. Please sign in again.");
+  }
   const user = (await response.json()) as { id?: string };
   return { userId: user.id ?? null };
 }
