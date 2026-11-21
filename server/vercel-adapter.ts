@@ -28,7 +28,7 @@ export function createVercelHandler(
       }
 
       const init: RequestInit & { duplex?: "half" } = { method, headers };
-      if (method !== "GET" && method !== "HEAD") {
+      if (method !== "GET") {
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
