@@ -91,6 +91,11 @@ export async function POST(request: Request): Promise<Response> {
   }, request.signal);
 }
 
-import { createVercelHandler } from "../../server/vercel-adapter";
 
-export default createVercelHandler({ POST });
+
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { invokeVercelHandler } from "../../server/vercel-adapter";
+
+export default async function handler(request: IncomingMessage, response: ServerResponse): Promise<void> {
+  await invokeVercelHandler(request, response, POST);
+}
