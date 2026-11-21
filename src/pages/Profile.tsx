@@ -38,6 +38,23 @@ export default function Profile() {
   const settings = useSettings();
   const ai = useAiStatus();
   const [name, setName] = useState(account?.name ?? settings.name);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut();
+      toast("You've been signed out");
+    } catch (error) {
+      toast("Sign-out could not be completed", {
+        tone: "error",
+        description: error instanceof Error ? error.message : "Please try again.",
+      });
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   const saveName = async () => {
     const clean = name.trim().slice(0, 40);
@@ -60,7 +77,7 @@ export default function Profile() {
             <p className="truncate text-lg font-semibold">{displayName}</p>
             <p className="truncate text-sm text-subtle">{account ? `${account.email} · board tag ${account.handle}` : "Local profile on this device"}</p>
           </div>
-          {mode === "cloud" && (account ? <Button variant="secondary" size="sm" icon={<LogOut className="h-4 w-4" />} onClick={() => void signOut()}>Sign out</Button> : <Button size="sm" onClick={() => openAuth("signin")}>Sign in</Button>)}
+          {mode === "cloud" && (account ? <Button variant="secondary" size="sm" loading={signingOut} icon={<LogOut className="h-4 w-4" />} onClick={() => void handleSignOut()}>{signingOut ? "Signing out…" : "Sign out"}</Button> : <Button size="sm" onClick={() => openAuth("signin")}>Sign in</Button>)}
         </div>
         <form
           className="mt-5 flex items-end gap-2"
