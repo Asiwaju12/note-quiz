@@ -81,3 +81,7 @@ export async function POST(request: Request): Promise<Response> {
     }
   }, request.signal);
 }
+
+import { createVercelHandler } from "../../server/vercel-adapter";
+
+export default createVercelHandler({ POST });
