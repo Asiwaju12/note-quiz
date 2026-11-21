@@ -230,8 +230,10 @@ async function step(name, fn) {
 
   await step("daily drop (local mode) posts to local board", async () => {
     await page.goto(BASE + "/quiz/arcade?daily=1");
-    for (let i = 0; i < 30; i++) {
-      if (await page.getByText(/Today's leaderboard/).isVisible().catch(() => false)) break;
+    await page.getByRole("button", { name: /^Answer 1:/ }).waitFor({ timeout: 5000 });
+    const heading = page.getByText(/Today's leaderboard/);
+    for (let i = 0; i < 16; i++) {
+      if (await heading.isVisible().catch(() => false)) break;
       const keep = page.getByRole("button", { name: "Keep going" });
       if (await keep.isVisible().catch(() => false)) {
         await page.keyboard.press("Enter");
@@ -245,8 +247,9 @@ async function step(name, fn) {
       }
       await page.waitForTimeout(150);
     }
-    await page.getByText(/Today's leaderboard/).waitFor();
-    await page.getByText("you", { exact: true }).waitFor();
+    await heading.waitFor({ timeout: 5000 });
+    const rows = page.getByRole("list", { name: "Today's daily leaderboard" }).getByRole("listitem");
+    if (await rows.count() < 1) throw new Error("Daily result did not appear on the local leaderboard");
   });
 
   await step("exam mode: start, flag, navigate, submit", async () => {
