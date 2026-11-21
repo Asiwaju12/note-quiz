@@ -233,11 +233,16 @@ async function step(name, fn) {
     for (let i = 0; i < 30; i++) {
       if (await page.getByText(/Today's leaderboard/).isVisible().catch(() => false)) break;
       const keep = page.getByRole("button", { name: "Keep going" });
-      if (await keep.isVisible().catch(() => false)) { await keep.click(); continue; }
-      const ans = page.getByRole("button", { name: /^Answer 1/ });
-      if (await ans.isEnabled().catch(() => false)) await ans.click();
-      const next = page.getByRole("button", { name: /Next question|See results|Level up/ });
-      if (await next.isVisible().catch(() => false)) await next.click();
+      if (await keep.isVisible().catch(() => false)) {
+        await page.keyboard.press("Enter");
+        continue;
+      }
+      const answer = page.getByRole("button", { name: /^Answer 1:/ });
+      if (await answer.isEnabled().catch(() => false)) {
+        await page.keyboard.press("1");
+        await page.getByRole("button", { name: /Next question|See results|Level up/ }).waitFor({ timeout: 3000 });
+        await page.keyboard.press("Enter");
+      }
       await page.waitForTimeout(150);
     }
     await page.getByText(/Today's leaderboard/).waitFor();
