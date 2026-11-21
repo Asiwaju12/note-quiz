@@ -8,3 +8,7 @@ export async function GET(): Promise<Response> {
   const body: AiStatus = { configured, provider: "anthropic", model: configured ? AI_CONFIG.model : null };
   return json(body);
 }
+
+import { createVercelHandler } from "../../server/vercel-adapter";
+
+export default createVercelHandler({ GET: () => GET() });
