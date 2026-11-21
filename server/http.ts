@@ -49,7 +49,8 @@ export async function authorize(request: Request): Promise<{ userId: string | nu
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!url || !key) throw new HttpError(500, "AI_REQUIRE_AUTH is on but Supabase is not configured on the server.");
   if (!token) throw new HttpError(401, "Please sign in to use Recall AI.");
-  const response = await fetch(`${url.replace(/\\/$/, "")}/auth/v1/user`, {
+  const authUrl = url.endsWith("/") ? url.slice(0, -1) : url;
+  const response = await fetch(authUrl + "/auth/v1/user", {
     headers: { apikey: key, Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
