@@ -97,10 +97,29 @@ jobs:
       - name: Install browser for desktop and mobile E2E
         run: npx playwright install --with-deps chromium
 
+      - name: Start Vite server for browser tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run dev -- --host 127.0.0.1 > /tmp/recall-vite.log 2>&1 &
+          echo $! > /tmp/recall-vite.pid
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/recall-vite.log
+          exit 1
+
       - name: Run desktop E2E
+        env:
+          BASE: http://127.0.0.1:5173
         run: npm run test:e2e
 
       - name: Run mobile E2E
+        env:
+          BASE: http://127.0.0.1:5173
         run: npm run test:e2e:mobile
 
       - name: Commit integrated app to the same branch
