@@ -210,13 +210,18 @@ async function step(name, fn) {
       if (await page.getByText(/Run complete/).isVisible().catch(() => false)) break;
       const keep = page.getByRole("button", { name: "Keep going" });
       if (await keep.isVisible().catch(() => false)) {
-        await keep.click();
+        // The game explicitly supports Enter to continue through level-up screens.
+        await page.keyboard.press("Enter");
         continue;
       }
-      const ans = page.getByRole("button", { name: /^Answer 2/ });
-      if (await ans.isEnabled().catch(() => false)) await ans.click();
-      const next = page.getByRole("button", { name: /Next question|See results|Level up/ });
-      if (await next.isVisible().catch(() => false)) await next.click();
+      const answer = page.getByRole("button", { name: /^Answer 1:/ });
+      if (await answer.isEnabled().catch(() => false)) {
+        // Use the documented 1–4 keyboard control so animated buttons don't make
+        // the browser test flaky while the game is transitioning between states.
+        await page.keyboard.press("1");
+        await page.getByRole("button", { name: /Next question|See results|Level up/ }).waitFor({ timeout: 3000 });
+        await page.keyboard.press("Enter");
+      }
       await page.waitForTimeout(150);
     }
     await page.getByText(/Run complete/).waitFor({ timeout: 10000 });
