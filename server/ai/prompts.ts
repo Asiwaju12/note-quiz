@@ -1,5 +1,5 @@
 /** Prompts and output schemas for Recall AI. SERVER ONLY. */
-import type { ChatRequest, GenerateRequest, GenerateTask, TutorMode } from "../../src/lib/ai/contract";
+import type { ChatRequest, GenerateRequest, GenerateTask, TutorMode } from "../../src/lib/ai/contract.js";
 
 export const TUTOR_SYSTEM = `You are Recall AI, a patient, encouraging study tutor inside the Recall Quiz study app. Students use you to understand their course material and prepare for exams.
 
