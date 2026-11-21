@@ -8,11 +8,11 @@ This source package includes the Supabase authentication client and an initial a
 |---|---|---|
 | `VITE_SUPABASE_URL` | browser | Accounts, cloud sync, shared Daily Drop |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | browser | same — publishable/anon key only, **never** the service-role key |
-| `ANTHROPIC_API_KEY` | server only | Recall AI chat + AI generation |
-| `AI_MODEL` | server, optional | defaults to `claude-opus-5-5` |
-| `AI_CHAT_EFFORT` / `AI_GENERATE_EFFORT` | server, optional | defaults `medium` / `high` |
-| `AI_FALLBACKS` | server, optional | `on` (default) sends Anthropic's server-side refusal fallback (`fallbacks: "default"`); `off` disables it |
-| `AI_REQUIRE_AUTH` | server, optional | `true` = AI routes require a valid Supabase session. **Turn on before any public deployment** |
+| `GEMINI_API_KEY` | server only | Google Gemini chat + AI generation |
+| `AI_MODEL` | server, optional | defaults to `gemini-2.5-flash` |
+| `AI_CHAT_EFFORT` / `AI_GENERATE_EFFORT` | server, optional | reserved tuning settings; Gemini uses provider generation defaults |
+
+| `AI_REQUIRE_AUTH` | server, optional | `true` = AI routes require a valid Supabase session. **Keep enabled for preview and production** |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | server, optional | used to verify sessions when `AI_REQUIRE_AUTH=true` |
 
 Variables prefixed `VITE_` are embedded in the browser bundle; everything else stays on the server.
@@ -75,7 +75,7 @@ The original Supabase code remains active for auth, classic/Daily Drop scores, a
 
 ## 5. Local and cloud data behavior
 
-Guests and signed-out users keep study data in this browser's IndexedDB; preferences and "continue studying" state remain in localStorage. Signed-in users additionally sync the new study workspace to the per-user Supabase snapshot after the additive migration is applied. PDF binaries use private Supabase Storage; extracted text uses the dedicated page-text table. AI content only appears when a real provider responds. The only mock is `tests/mock-anthropic.mjs`, used by tests.
+Guests and signed-out users keep study data in this browser's IndexedDB; preferences and "continue studying" state remain in localStorage. Signed-in users additionally sync the new study workspace to the per-user Supabase snapshot after the additive migration is applied. PDF binaries use private Supabase Storage; extracted text uses the dedicated page-text table. AI content only appears when a real provider responds. AI responses are never mocked in the deployed app; integration tests should stub the Gemini REST boundary when testing provider behavior.
 
 ## 6. Remaining backend work
 
