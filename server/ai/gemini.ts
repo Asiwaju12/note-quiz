@@ -21,7 +21,23 @@ async function requestGemini(method: "generateContent" | "streamGenerateContent"
   const model = encodeURIComponent(AI_CONFIG.model);
   const stream = method === "streamGenerateContent";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${method}${stream ? "?alt=sse" : ""}`;
-  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() }, body: JSON.stringify(body), signal });
+  const request = { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": getApiKey() }, body: JSON.stringify(body), signal };
+  // Gemini can briefly return 503 during demand spikes. Retry only transient
+  // service responses, before a stream has started, so no answer text is duplicated.
+  const retryable = new Set([429, 500, 502, 503, 504]);
+  let response: Response | undefined;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    response = await fetch(url, request);
+    if (response.ok || !retryable.has(response.status) || attempt === 2) break;
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const delay = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 2500)
+      : 700 * (attempt + 1);
+    await response.body?.cancel().catch(() => undefined);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    if (signal?.aborted) throw new DOMException("The request was aborted.", "AbortError");
+  }
+  if (!response) throw new Error("Gemini request did not return a response.");
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
     throw new Error(`Gemini HTTP ${response.status}: ${detail.slice(0, 1200)}`);
