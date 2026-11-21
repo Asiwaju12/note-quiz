@@ -1,20 +1,16 @@
-import { Readable } from "node:stream";
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 type RouteHandler = (request: Request) => Promise<Response>;
 
-/**
- * Adapts the Web Request/Response handlers used by the local Vite API shim
- * to Vercel's Node.js function entry point (default export).
- */
+/** Adapt Web Request/Response route handlers to Vercel's Node function API. */
 export function createVercelHandler(
   handlers: Partial<Record<"GET" | "POST" | "PUT" | "PATCH" | "DELETE", RouteHandler>>,
 ) {
-  return async (incoming: IncomingMessage, outgoing: ServerResponse): Promise<void> => {
+  return async function vercelHandler(incoming: IncomingMessage, outgoing: ServerResponse): Promise<void> {
     try {
       const method = (incoming.method ?? "GET").toUpperCase() as keyof typeof handlers;
-      const handler = handlers[method];
-      if (!handler) {
+      const routeHandler = handlers[method];
+      if (!routeHandler) {
         outgoing.statusCode = 405;
         outgoing.setHeader("Allow", Object.keys(handlers).join(", "));
         outgoing.end();
@@ -27,25 +23,38 @@ export function createVercelHandler(
         else if (value !== undefined) headers.set(key, value);
       }
 
-      const init: RequestInit & { duplex?: "half" } = { method, headers };
+      const init: RequestInit = { method, headers };
       if (method !== "GET") {
         const chunks: Buffer[] = [];
         for await (const chunk of incoming) {
           chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
         }
         init.body = Buffer.concat(chunks);
-        init.duplex = "half";
       }
 
       const url = new URL(incoming.url ?? "/", `https://${incoming.headers.host ?? "localhost"}`);
-      const response = await handler(new Request(url, init));
+      const response = await routeHandler(new Request(url, init));
       outgoing.statusCode = response.status;
       response.headers.forEach((value, key) => outgoing.setHeader(key, value));
+
       if (!response.body) {
         outgoing.end();
         return;
       }
-      Readable.fromWeb(response.body as import("node:stream/web").ReadableStream).pipe(outgoing);
+
+      const reader = response.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (!outgoing.write(Buffer.from(value))) {
+            await new Promise<void>((resolve) => outgoing.once("drain", resolve));
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      outgoing.end();
     } catch (error) {
       console.error("[recall-api] request failed", error);
       if (!outgoing.headersSent) {
