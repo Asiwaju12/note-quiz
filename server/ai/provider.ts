@@ -1,6 +1,6 @@
 /** Server-only Google Gemini provider configuration. Never import from src/. */
 export const AI_CONFIG = {
-  get model(): string { return process.env.AI_MODEL?.trim() || "gemini-2.5-flash"; },
+  get model(): string { return process.env.AI_MODEL?.trim() || "gemini-3.8-flash"; },
   get chatEffort(): string { return process.env.AI_CHAT_EFFORT?.trim() || "medium"; },
   get generateEffort(): string { return process.env.AI_GENERATE_EFFORT?.trim() || "high"; },
 };
