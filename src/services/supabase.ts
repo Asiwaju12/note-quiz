@@ -52,9 +52,16 @@ function withExpiry<T extends SupabaseSession>(data: T): T {
 }
 export const supabaseAuth = {
   async signUp(email: string, password: string, metadata: Record<string, unknown>) {
-    const data = await request<SupabaseSession>("/auth/v1/signup", {
-      method: "POST", body: JSON.stringify({ email, password, data: metadata }),
-    });
+    // Always return confirmation links to the site where signup began.
+    // Otherwise Supabase falls back to its Site URL, which may still be the old deployment.
+    const redirectTo = `${window.location.origin}/`;
+    const data = await request<SupabaseSession>(
+      `/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password, data: metadata }),
+      },
+    );
     if (data.access_token && data.refresh_token) writeSession(withExpiry(data));
     return data;
   },
