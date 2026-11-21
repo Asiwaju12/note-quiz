@@ -1,5 +1,7 @@
-import { createVercelHandler } from "../../server/vercel-adapter";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
-export default createVercelHandler({
-  GET: async () => Response.json({ adapter: "ok" }),
-});
+export default async function handler(_request: IncomingMessage, response: ServerResponse): Promise<void> {
+  response.statusCode = 200;
+  response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.end(JSON.stringify({ direct: "ok" }));
+}
