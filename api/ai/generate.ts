@@ -1,7 +1,7 @@
-import { AI_CONFIG, FALLBACK_BETA, friendlyAiError, getClient, isAiConfigured } from "../../server/ai/provider";
-import { GENERATE_SYSTEM, SCHEMAS, buildGenerateUserContent } from "../../server/ai/prompts";
-import { authorize, clientKey, errorResponse, HttpError, ndjsonStream, rateLimit, readJson } from "../../server/http";
-import { MAX_GENERATE_CHARS, type GenerateRequest, type GenerateTask } from "../../src/lib/ai/contract";
+import { AI_CONFIG, FALLBACK_BETA, friendlyAiError, getClient, isAiConfigured } from "../../server/ai/provider.js";
+import { GENERATE_SYSTEM, SCHEMAS, buildGenerateUserContent } from "../../server/ai/prompts.js";
+import { authorize, clientKey, errorResponse, HttpError, ndjsonStream, rateLimit, readJson } from "../../server/http.js";
+import { MAX_GENERATE_CHARS, type GenerateRequest, type GenerateTask } from "../../src/lib/ai/contract.js";
 
 const TASKS: GenerateTask[] = ["summary", "notes", "keyTerms", "guide", "flashcards", "questions", "plan"];
 
@@ -85,7 +85,7 @@ export async function POST(request: Request): Promise<Response> {
 
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { invokeVercelHandler } from "../../server/vercel-adapter";
+import { invokeVercelHandler } from "../../server/vercel-adapter.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse): Promise<void> {
   await invokeVercelHandler(request, response, POST);
