@@ -1,0 +1,116 @@
+name: Integrate Recall Quiz redesign
+
+on:
+  push:
+    branches:
+      - recall-quiz-redesign-integration
+    paths:
+      - .github/workflows/integrate-recall-quiz.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: recall-quiz-redesign-integration
+  cancel-in-progress: false
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: recall-quiz-redesign-integration
+          fetch-depth: 0
+
+      - name: Preserve existing root source and unpack supplied archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rq-old-root /tmp/rq-redesign /tmp/rq-stage7
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.zip|.github/*) continue ;;
+            esac
+            mkdir -p "/tmp/rq-old-root/$(dirname "$path")"
+            cp -a "$path" "/tmp/rq-old-root/$path"
+          done < <(git ls-files -z)
+
+          unzip -q -o recall-quiz-redesign.zip -d /tmp/rq-redesign
+          unzip -q -o recall-quiz-stage7-integration-readiness.zip -d /tmp/rq-stage7
+
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              *.zip|.github/*) continue ;;
+            esac
+            rm -rf "$path"
+          done < <(git ls-files -z)
+
+          cp -a /tmp/rq-redesign/recall-quiz/. .
+          mkdir -p legacy/original-root
+          cp -a /tmp/rq-old-root/. legacy/original-root/
+
+          # Apply the Stage 7 cloud-sync, PDF persistence and auth integration work
+          # on top of the supplied redesigned frontend.
+          for path in package.json package-lock.json .gitignore \
+            docs/INTEGRATION.md \
+            src/app/account.tsx \
+            src/components/layout/AuthDialog.tsx \
+            src/data/db.ts src/data/repos.ts src/data/settings.ts \
+            src/lib/study/ingest.ts src/pages/StudyCentre.tsx \
+            src/services/supabase.ts; do
+            cp "/tmp/rq-stage7/recall-stage3/$path" "$path"
+          done
+
+          mkdir -p docs supabase/migrations src/data tests
+          cp /tmp/rq-stage7/recall-stage3/docs/STAGE-4-STATUS.md docs/
+          cp /tmp/rq-stage7/recall-stage3/docs/STAGE-6-PDF-STORAGE.md docs/
+          cp /tmp/rq-stage7/recall-stage3/docs/STAGE-7-INTEGRATION-READINESS.md docs/
+          cp /tmp/rq-stage7/recall-stage3/src/data/cloud-sync.ts src/data/
+          cp /tmp/rq-stage7/recall-stage3/src/data/cloud-sync-merge.ts src/data/
+          cp /tmp/rq-stage7/recall-stage3/supabase/migrations/20261120202559_recall_user_data_sync.sql supabase/migrations/
+          cp /tmp/rq-stage7/recall-stage3/tests/cloud-sync-merge.test.mjs tests/
+          cp /tmp/rq-stage7/recall-stage3/tests/e2e.cjs tests/
+
+          # Correct the Stage 7 type alias typo found by the full TypeScript check.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("src/data/cloud-sync-merge.ts")
+          s = p.read_text()
+          s = s.replace('as Snapshot["collections"]', 'as SyncSnapshot["collections"]')
+          p.write_text(s)
+          PY
+
+          rm -f recall-quiz-redesign.zip recall-quiz-stage7-integration-readiness.zip
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck, build and cloud-sync tests
+        run: |
+          npm run typecheck
+          npm run build
+          npm run test:cloud-sync
+
+      - name: Install browser for desktop and mobile E2E
+        run: npx playwright install --with-deps chromium
+
+      - name: Run desktop E2E
+        run: npm run test:e2e
+
+      - name: Run mobile E2E
+        run: npm run test:e2e:mobile
+
+      - name: Commit integrated app to the same branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Integrate Recall Quiz redesign and cloud sync"
+            git push origin HEAD:recall-quiz-redesign-integration
+          fi
