@@ -95,11 +95,18 @@ export const supabaseAuth = {
   },
   async signOut() {
     const current = readSession();
+    // End the browser session immediately. A slow/offline Auth request must
+    // never leave the user appearing signed in.
+    writeSession(null);
+    if (!current) return;
     try {
-      if (current) await request("/auth/v1/logout", { method: "POST" }, current.access_token);
+      await request("/auth/v1/logout", {
+        method: "POST",
+        signal: AbortSignal.timeout(4000),
+      }, current.access_token);
     } catch {
-      // Clear the local session even if the network is unavailable.
-    } finally { writeSession(null); }
+      // Local sign-out is complete; remote revocation is best-effort.
+    }
   },
   async resetPassword(email: string, redirectTo = window.location.origin) {
     return request("/auth/v1/recover", { method: "POST", body: JSON.stringify({ email, redirect_to: redirectTo }) });
