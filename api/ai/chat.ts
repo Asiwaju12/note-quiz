@@ -1,8 +1,8 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import { AI_CONFIG, FALLBACK_BETA, friendlyAiError, getClient, isAiConfigured } from "../../server/ai/provider";
-import { TUTOR_SYSTEM, buildChatUserContent } from "../../server/ai/prompts";
-import { authorize, clientKey, errorResponse, HttpError, ndjsonStream, rateLimit, readJson } from "../../server/http";
-import { MAX_CHAT_CONTEXT_CHARS, TUTOR_MODES, type ChatRequest } from "../../src/lib/ai/contract";
+import { AI_CONFIG, FALLBACK_BETA, friendlyAiError, getClient, isAiConfigured } from "../../server/ai/provider.js";
+import { TUTOR_SYSTEM, buildChatUserContent } from "../../server/ai/prompts.js";
+import { authorize, clientKey, errorResponse, HttpError, ndjsonStream, rateLimit, readJson } from "../../server/http.js";
+import { MAX_CHAT_CONTEXT_CHARS, TUTOR_MODES, type ChatRequest } from "../../src/lib/ai/contract.js";
 
 const MAX_TURNS = 30;
 const MAX_MESSAGE_CHARS = 12_000;
@@ -94,7 +94,7 @@ export async function POST(request: Request): Promise<Response> {
 
 
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { invokeVercelHandler } from "../../server/vercel-adapter";
+import { invokeVercelHandler } from "../../server/vercel-adapter.js";
 
 export default async function handler(request: IncomingMessage, response: ServerResponse): Promise<void> {
   await invokeVercelHandler(request, response, POST);
