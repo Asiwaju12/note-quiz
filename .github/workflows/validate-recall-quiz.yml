@@ -30,6 +30,30 @@ jobs:
           npm run typecheck
           npm run build
           npm run test:cloud-sync
+      - name: Verify deployed serverless API routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE_URL="https://recall-quiz-git-recall-quiz-de70c3-fernandezs-projects-f1475cb5.vercel.app"
+          status_code=""
+          for attempt in $(seq 1 90); do
+            status_code=$(curl --silent --show-error --output /tmp/ai-status.json --write-out '%{http_code}' "$BASE_URL/api/ai/status" || true)
+            if [ "$status_code" = "200" ]; then break; fi
+            sleep 2
+          done
+          if [ "$status_code" != "200" ]; then
+            cat /tmp/ai-status.json || true
+            echo "AI status route failed with HTTP $status_code"
+            exit 1
+          fi
+          for route in chat generate; do
+            code=$(curl --silent --show-error --output "/tmp/$route.json" --write-out '%{http_code}' -X POST -H 'content-type: application/json' -d '{}' "$BASE_URL/api/ai/$route" || true)
+            if [ "$code" != "503" ] && [ "$code" != "400" ]; then
+              cat "/tmp/$route.json" || true
+              echo "$route route returned unexpected HTTP $code"
+              exit 1
+            fi
+          done
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Start Vite server
