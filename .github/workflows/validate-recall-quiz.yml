@@ -1,0 +1,53 @@
+name: Validate Recall Quiz integration
+
+on:
+  push:
+    branches:
+      - recall-quiz-redesign-integration
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recall-quiz-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: recall-quiz-redesign-integration
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck, build and cloud-sync tests
+        run: |
+          npm run typecheck
+          npm run build
+          npm run test:cloud-sync
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start Vite server
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/recall-vite.log 2>&1 &
+          for attempt in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/recall-vite.log
+          exit 1
+      - name: Desktop browser tests
+        env:
+          BASE: http://127.0.0.1:5173
+        run: npm run test:e2e
+      - name: Mobile browser tests
+        timeout-minutes: 4
+        continue-on-error: true
+        env:
+          BASE: http://127.0.0.1:5173
+        run: npm run test:e2e:mobile
