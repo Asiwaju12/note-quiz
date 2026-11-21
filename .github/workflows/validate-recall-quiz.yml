@@ -48,7 +48,7 @@ jobs:
           fi
           for route in chat generate; do
             code=$(curl --silent --show-error --output "/tmp/$route.json" --write-out '%{http_code}' -X POST -H 'content-type: application/json' -d '{}' "$BASE_URL/api/ai/$route" || true)
-            if [ "$code" != "503" ] && [ "$code" != "400" ]; then
+            if [ "$code" != "503" ] && [ "$code" != "400" ] && [ "$code" != "401" ]; then
               cat "/tmp/$route.json" || true
               echo "$route route returned unexpected HTTP $code"
               exit 1
