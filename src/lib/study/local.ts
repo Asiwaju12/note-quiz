@@ -355,7 +355,7 @@ export function localQuestions(
     .map((sentence) => {
       const sentenceStems = new Set(sentence.tokens);
       const matching = allTerms.filter((term) => tokenize(term).some((token) => sentenceStems.has(token))).sort((a, b) => b.length - a.length);
-      let term = matching[0];
+      let term: string | undefined = matching[0];
       if (!term) {
         const words = sentence.text.match(/[A-Za-z][A-Za-z'’-]{3,}/g) ?? [];
         term = words.find((word) => tokenize(word).some((token) => sentenceStems.has(token)));
