@@ -13,7 +13,12 @@ export function normalizeSpace(text: string): string {
 /** Splits text into sentences, keeping reasonably sized ones. */
 export function splitSentences(text: string): string[] {
   const flat = text
+    // PDF.js often emits one newline for every visual text row. Join those
+    // wrapped rows before splitting on sentence punctuation, while retaining
+    // paragraph and bullet boundaries.
+    .replace(/([a-z])[-‐‑]\n([a-z])/gi, "$1$2")
     .replace(/\n(?=[•\-*·]\s)/g, "\n")
+    .replace(/(?<!\n)\n(?!\n)(?![•\-*·]\s)/g, " ")
     .split(/\n{2,}|\n(?=[•\-*·]\s)|(?<=[.!?])\s+(?=[A-Z0-9“"(])/)
     .map((part) => normalizeSpace(part.replace(/^[•\-*·]\s*/, "")))
     .filter(Boolean);
