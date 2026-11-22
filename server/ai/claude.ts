@@ -4,7 +4,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 type Event = { type?: string; delta?: { type?: string; text?: string }; content?: Array<{type?:string;text?:string}>; error?: {message?:string} };
 function key(): string { const value=process.env.ANTHROPIC_API_KEY?.trim(); if(!value) throw new Error("ANTHROPIC_API_KEY is not configured."); return value; }
 async function call(body: Record<string,unknown>, signal?:AbortSignal):Promise<Response>{
- const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key(),"anthropic-version":"2023-06-01"},body:JSON.stringify({model:AI_CONFIG.claudeModel,...body}),signal});
+ const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":key(),"anthropic-version":"2026-10-21"},body:JSON.stringify({model:AI_CONFIG.claudeModel,...body}),signal});
  if(!r.ok){const detail=await r.text().catch(()=>"");throw new Error(`Claude HTTP ${r.status}: ${detail.slice(0,1000)}`);} return r;
 }
 export async function streamClaudeText(a:{system:string;contents:Array<{role:"user"|"model";parts:Array<{text:string}>}>;maxOutputTokens:number;signal:AbortSignal;onText:(s:string)=>void}):Promise<string>{
