@@ -29,6 +29,11 @@ async function requestGemini(method: "generateContent" | "streamGenerateContent"
   for (let attempt = 0; attempt < 3; attempt += 1) {
     response = await fetch(url, request);
     if (response.ok || !retryable.has(response.status) || attempt === 2) break;
+    // Daily/free-tier quota exhaustion is not transient; do not retry it.
+    if (response.status === 429) {
+      const preview = await response.clone().text().catch(() => "");
+      if (/generate_content_free_tier_requests|per day|daily.*quota|quota.*exceeded/i.test(preview)) break;
+    }
     const retryAfter = Number(response.headers.get("retry-after"));
     const delay = Number.isFinite(retryAfter) && retryAfter > 0
       ? Math.min(retryAfter * 1000, 2500)
