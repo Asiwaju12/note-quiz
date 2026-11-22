@@ -86,7 +86,7 @@ export function analyse(pages: string[]): Analysis {
     }
     for (const text of splitSentences(bodyLines.join("\n"))) {
       const words = wordCount(text);
-      if (words < 6 || words > 70 || !/[a-z]/.test(text)) continue;
+      if (words < 4 || words > 100 || !/[a-z]/.test(text)) continue;
       sentences.push({ text, page, tokens: tokenize(text), score: 0, order: order++ });
     }
   });
@@ -350,50 +350,61 @@ export function localQuestions(
   const types = options.types.length ? options.types : (["mcq", "tf", "fill", "short"] as QuestionTypeOption[]);
   const inTopic = (page: number) => !options.topics?.length || options.topics.includes(sectionOf(analysis, page));
   const defs = analysis.definitions.filter((d) => inTopic(d.page));
-  const terms = analysis.keywords.map((k) => k.term);
-  const facts = topSentences(analysis.sentences.filter((s) => inTopic(s.page)), options.count * 4)
-    .map((sentence) => ({ sentence, term: keywordIn(sentence, [...defs.map((d) => d.term), ...terms]) }))
-    .filter((item): item is { sentence: Sentence; term: string } => Boolean(item.term));
-
+  const allTerms = [...new Set([...defs.map((d) => d.term), ...analysis.keywords.map((k) => k.term)])];
+  const facts = topSentences(analysis.sentences.filter((s) => inTopic(s.page)), Math.max(options.count * 12, 40))
+    .map((sentence) => {
+      const sentenceStems = new Set(sentence.tokens);
+      const matching = allTerms.filter((term) => tokenize(term).some((token) => sentenceStems.has(token))).sort((a, b) => b.length - a.length);
+      let term = matching[0];
+      if (!term) {
+        const words = sentence.text.match(/[A-Za-z][A-Za-z'’-]{3,}/g) ?? [];
+        term = words.find((word) => tokenize(word).some((token) => sentenceStems.has(token)));
+      }
+      return term ? { sentence, term } : null;
+    })
+    .filter((item): item is { sentence: Sentence; term: string } => Boolean(item));
   const difficultyOf = (text: string): "easy" | "medium" | "hard" => {
     const words = wordCount(text);
     return words < 16 ? "easy" : words < 30 ? "medium" : "hard";
   };
-  const matchCase = (item: string, answer: string) => (/^[A-Z]/.test(answer) && /^[a-z]/.test(item) ? item.charAt(0).toUpperCase() + item.slice(1) : /^[a-z]/.test(answer) && /^[A-Z][a-z]/.test(item) && !/[A-Z]/.test(item.slice(1)) ? item.toLowerCase() : item);
   const distractors = (answer: string, pool: string[]) =>
-    shuffled(pool.filter((item) => item.toLowerCase() !== answer.toLowerCase() && !item.toLowerCase().includes(answer.toLowerCase()))).slice(0, 3).map((item) => matchCase(item, answer));
-
+    shuffled([...new Set(pool.filter((item) => item.toLowerCase() !== answer.toLowerCase() && !item.toLowerCase().includes(answer.toLowerCase())))])
+      .slice(0, 3);
   const out: GeneratedQuestion[] = [];
   let defIndex = 0;
   let factIndex = 0;
   let guard = 0;
-  while (out.length < options.count && guard < options.count * 6) {
+  while (out.length < options.count && guard < options.count * 10) {
     guard += 1;
     const type = types[out.length % types.length];
     if (type === "mcq") {
-      const def = defs[defIndex % Math.max(1, defs.length)];
-      if (def && defIndex < defs.length) {
+      const def = defs[defIndex];
+      if (def) {
         defIndex += 1;
-        const wrong = distractors(def.term, [...defs.map((d) => d.term), ...terms]);
-        if (wrong.length < 3) continue;
-        const choices = shuffled([def.term, ...wrong]);
-        out.push({ type, prompt: `Which term matches this description? “${def.definition}”`, options: choices, answerIndex: choices.indexOf(def.term), answerText: def.term, explanation: `${def.term} — ${def.definition}`, topic: sectionOf(analysis, def.page), difficulty: difficultyOf(def.definition), page: def.page });
-        continue;
+        const wrong = distractors(def.term, allTerms);
+        if (wrong.length >= 1) {
+          const choices = shuffled([def.term, ...wrong]);
+          out.push({ type, prompt: \`Which term matches this description? “\${def.definition}”\`, options: choices, answerIndex: choices.indexOf(def.term), answerText: def.term, explanation: \`\${def.term} — \${def.definition}\`, topic: sectionOf(analysis, def.page), difficulty: difficultyOf(def.definition), page: def.page });
+          continue;
+        }
       }
       const fact = facts[factIndex++];
       if (!fact) break;
-      const wrong = distractors(fact.term, terms);
-      if (wrong.length < 3) continue;
-      const choices = shuffled([fact.term, ...wrong]);
-      out.push({ type, prompt: `Fill the gap: ${blank(fact.sentence.text, fact.term)}`, options: choices, answerIndex: choices.indexOf(fact.term), answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+      const wrong = distractors(fact.term, allTerms);
+      if (!wrong.length) {
+        out.push({ type: "fill", prompt: blank(fact.sentence.text, fact.term), options: [], answerIndex: -1, answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+      } else {
+        const choices = shuffled([fact.term, ...wrong]);
+        out.push({ type, prompt: \`According to the document, complete the statement: \${blank(fact.sentence.text, fact.term)}\`, options: choices, answerIndex: choices.indexOf(fact.term), answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+      }
     } else if (type === "tf") {
       const fact = facts[factIndex++];
       if (!fact) break;
-      const makeFalse = out.length % 2 === 1;
-      const swap = distractors(fact.term, terms)[0];
-      const statement = makeFalse && swap ? fact.sentence.text.replace(new RegExp(`\\b${escapeRe(fact.term)}\\b`, "i"), swap) : fact.sentence.text;
-      const isTrue = !(makeFalse && swap);
-      out.push({ type, prompt: `True or false: ${statement}`, options: ["True", "False"], answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False", explanation: isTrue ? `True — the document states: “${fact.sentence.text}”` : `False — the document says “${fact.term}”, not “${swap}”: “${fact.sentence.text}”`, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+      const swap = distractors(fact.term, allTerms)[0];
+      const makeFalse = Boolean(swap) && out.length % 2 === 1;
+      const statement = makeFalse ? fact.sentence.text.replace(new RegExp(\`\\\\b\${escapeRe(fact.term)}\\\\b\`, "i"), swap!) : fact.sentence.text;
+      const isTrue = !makeFalse;
+      out.push({ type, prompt: \`True or false: \${statement}\`, options: ["True", "False"], answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False", explanation: isTrue ? \`The document states: “\${fact.sentence.text}”\` : \`The document says “\${fact.term}”, not “\${swap}”: “\${fact.sentence.text}”\`, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
     } else if (type === "fill") {
       const fact = facts[factIndex++];
       if (!fact) break;
@@ -401,17 +412,17 @@ export function localQuestions(
     } else {
       const def = defs[defIndex++];
       if (def) {
-        out.push({ type, prompt: `In your own words, what is ${def.term}?`, options: [], answerIndex: -1, answerText: def.definition, explanation: `Model answer from page ${def.page}: ${def.definition}`, topic: sectionOf(analysis, def.page), difficulty: "medium", page: def.page });
+        out.push({ type, prompt: \`In your own words, what is \${def.term}?\`, options: [], answerIndex: -1, answerText: def.definition, explanation: \`Model answer from page \${def.page}: \${def.definition}\`, topic: sectionOf(analysis, def.page), difficulty: "medium", page: def.page });
         continue;
       }
       const fact = facts[factIndex++];
       if (!fact) break;
-      out.push({ type, prompt: `Explain the role of “${fact.term}” as described in the document.`, options: [], answerIndex: -1, answerText: fact.sentence.text, explanation: `The document says: ${fact.sentence.text}`, topic: sectionOf(analysis, fact.sentence.page), difficulty: "hard", page: fact.sentence.page });
+      out.push({ type, prompt: \`Explain the role of “\${fact.term}” as described in the document.\`, options: [], answerIndex: -1, answerText: fact.sentence.text, explanation: \`The document says: \${fact.sentence.text}\`, topic: sectionOf(analysis, fact.sentence.page), difficulty: "hard", page: fact.sentence.page });
     }
   }
   if (options.difficulty !== "mixed") {
     const filtered = out.filter((q) => q.difficulty === options.difficulty);
-    if (filtered.length >= Math.min(5, options.count)) return filtered;
+    if (filtered.length >= Math.min(2, options.count)) return filtered;
   }
   return out;
 }
