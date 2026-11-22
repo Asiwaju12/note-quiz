@@ -1,7 +1,7 @@
 /** Server-only AI provider configuration. Never import from src/. */
 export const AI_CONFIG = {
   get model(): string { return process.env.AI_MODEL?.trim() || "gemini-3.8-flash"; },
-  get claudeModel(): string { return process.env.CLAUDE_MODEL?.trim() || "claude-sonnet-5-5"; },
+  get claudeModel(): string { return process.env.CLAUDE_MODEL?.trim() || "claude-sonnet-5"; },
   get chatEffort(): string { return process.env.AI_CHAT_EFFORT?.trim() || "medium"; },
   get generateEffort(): string { return process.env.AI_GENERATE_EFFORT?.trim() || "high"; },
 };
