@@ -402,7 +402,7 @@ export function localQuestions(
       if (!fact) break;
       const swap = distractors(fact.term, allTerms)[0];
       const makeFalse = Boolean(swap) && out.length % 2 === 1;
-      const statement = makeFalse ? fact.sentence.text.replace(new RegExp(`\\\\b${escapeRe(fact.term)}\\\\b`, "i"), swap!) : fact.sentence.text;
+      const statement = makeFalse ? fact.sentence.text.replace(new RegExp(`\\b${escapeRe(fact.term)}\\b`, "i"), swap!) : fact.sentence.text;
       const isTrue = !makeFalse;
       out.push({ type, prompt: `True or false: ${statement}`, options: ["True", "False"], answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False", explanation: isTrue ? `The document states: “${fact.sentence.text}”` : `The document says “${fact.term}”, not “${swap}”: “${fact.sentence.text}”`, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
     } else if (type === "fill") {
