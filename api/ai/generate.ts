@@ -20,15 +20,13 @@ export async function POST(request:Request):Promise<Response>{
   const keepAlive=setInterval(()=>send({t:"ping"}),5000);
   try{
    const args={system:GENERATE_SYSTEM,prompt:buildGenerateUserContent(body),schema:SCHEMAS[body.task],maxOutputTokens:16000,signal};
-   let result:{text:string;finishReason?:string};
+   const parseResult=(value:string):unknown=>{const cleaned=value.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,"");return JSON.parse(cleaned);};
+   let result:{text:string;finishReason?:string},data:unknown;
    if(hasGemini()){
-    try{result=await generateGeminiJson(args);}
-    catch(error){if(signal.aborted)return;if(!hasClaude())throw error;console.warn("[api/ai/generate] Gemini failed; using Claude backup.",error);result=await generateClaudeJson(args);}
-   }else result=await generateClaudeJson(args);
+    try{result=await generateGeminiJson(args);data=parseResult(result.text);}
+    catch(error){if(signal.aborted)return;if(!hasClaude())throw error;console.warn("[api/ai/generate] Gemini failed or returned invalid JSON; using Claude backup.",error);result=await generateClaudeJson(args);data=parseResult(result.text);}
+   }else{result=await generateClaudeJson(args);data=parseResult(result.text);}
    if(result.finishReason==="MAX_TOKENS"||result.finishReason==="max_tokens"){send({t:"error",code:"too_long",message:"The output was too long. Try a smaller section or fewer items."});return;}
-   let data:unknown;
-   try{const cleaned=result.text.trim().replace(/^\`\`\`(?:json)?\s*/i,"").replace(/\s*\`\`\`$/,"");data=JSON.parse(cleaned);}
-   catch{send({t:"error",message:"The AI returned an unreadable result. Please try again."});return;}
    send({t:"result",data});send({t:"done",stop:result.finishReason??undefined});
   }catch(error){if(signal.aborted)return;console.error("[api/ai/generate]",error);send({t:"error",message:friendlyAiError(error).message});}
   finally{clearInterval(keepAlive);}
