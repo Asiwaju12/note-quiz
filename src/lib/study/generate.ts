@@ -150,7 +150,7 @@ export async function generateQuestions(
   if (!questions.length) {
     throw new Error(
       source === "local"
-        ? "Basic mode couldn't find enough definitions or facts to build questions from this document. Connect Recall AI for better results."
+        ? "Basic mode couldn't build questions from the readable text in this document. Try selecting more pages, or check whether the PDF contains selectable text rather than scanned images."
         : "No usable questions were generated. Please try again.",
     );
   }
@@ -164,7 +164,7 @@ export async function generateCards(doc: StudyDocument, count: number, source: A
     return result.cards.filter((card) => card.front?.trim() && card.back?.trim()).map((card) => ({ ...card, page: clampPage(card.page, doc.pageCount) ?? 0 }));
   }
   const cards = localFlashcards(await analysisFor(doc.id), count);
-  if (!cards.length) throw new Error("Basic mode couldn't find definitions to turn into flashcards. Connect Recall AI for better results.");
+  if (!cards.length) throw new Error("Basic mode couldn't find enough readable text to create flashcards. Check whether the PDF contains selectable text rather than scanned images.");
   return cards;
 }
 
