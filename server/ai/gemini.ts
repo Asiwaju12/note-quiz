@@ -76,6 +76,7 @@ export async function streamGeminiText(args: { system: string; contents: GeminiC
       }
     }
   } finally { reader.releaseLock(); }
+  if (!combined) throw new Error("Gemini returned no text.");
   return combined;
 }
 
