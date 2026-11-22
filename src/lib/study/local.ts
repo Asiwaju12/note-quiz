@@ -384,7 +384,7 @@ export function localQuestions(
         const wrong = distractors(def.term, allTerms);
         if (wrong.length >= 1) {
           const choices = shuffled([def.term, ...wrong]);
-          out.push({ type, prompt: \`Which term matches this description? “\${def.definition}”\`, options: choices, answerIndex: choices.indexOf(def.term), answerText: def.term, explanation: \`\${def.term} — \${def.definition}\`, topic: sectionOf(analysis, def.page), difficulty: difficultyOf(def.definition), page: def.page });
+          out.push({ type, prompt: `Which term matches this description? “${def.definition}”`, options: choices, answerIndex: choices.indexOf(def.term), answerText: def.term, explanation: `${def.term} — ${def.definition}`, topic: sectionOf(analysis, def.page), difficulty: difficultyOf(def.definition), page: def.page });
           continue;
         }
       }
@@ -395,16 +395,16 @@ export function localQuestions(
         out.push({ type: "fill", prompt: blank(fact.sentence.text, fact.term), options: [], answerIndex: -1, answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
       } else {
         const choices = shuffled([fact.term, ...wrong]);
-        out.push({ type, prompt: \`According to the document, complete the statement: \${blank(fact.sentence.text, fact.term)}\`, options: choices, answerIndex: choices.indexOf(fact.term), answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+        out.push({ type, prompt: `According to the document, complete the statement: ${blank(fact.sentence.text, fact.term)}`, options: choices, answerIndex: choices.indexOf(fact.term), answerText: fact.term, explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
       }
     } else if (type === "tf") {
       const fact = facts[factIndex++];
       if (!fact) break;
       const swap = distractors(fact.term, allTerms)[0];
       const makeFalse = Boolean(swap) && out.length % 2 === 1;
-      const statement = makeFalse ? fact.sentence.text.replace(new RegExp(\`\\\\b\${escapeRe(fact.term)}\\\\b\`, "i"), swap!) : fact.sentence.text;
+      const statement = makeFalse ? fact.sentence.text.replace(new RegExp(`\\\\b${escapeRe(fact.term)}\\\\b`, "i"), swap!) : fact.sentence.text;
       const isTrue = !makeFalse;
-      out.push({ type, prompt: \`True or false: \${statement}\`, options: ["True", "False"], answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False", explanation: isTrue ? \`The document states: “\${fact.sentence.text}”\` : \`The document says “\${fact.term}”, not “\${swap}”: “\${fact.sentence.text}”\`, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
+      out.push({ type, prompt: `True or false: ${statement}`, options: ["True", "False"], answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False", explanation: isTrue ? `The document states: “${fact.sentence.text}”` : `The document says “${fact.term}”, not “${swap}”: “${fact.sentence.text}”`, topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page });
     } else if (type === "fill") {
       const fact = facts[factIndex++];
       if (!fact) break;
@@ -412,12 +412,12 @@ export function localQuestions(
     } else {
       const def = defs[defIndex++];
       if (def) {
-        out.push({ type, prompt: \`In your own words, what is \${def.term}?\`, options: [], answerIndex: -1, answerText: def.definition, explanation: \`Model answer from page \${def.page}: \${def.definition}\`, topic: sectionOf(analysis, def.page), difficulty: "medium", page: def.page });
+        out.push({ type, prompt: `In your own words, what is ${def.term}?`, options: [], answerIndex: -1, answerText: def.definition, explanation: `Model answer from page ${def.page}: ${def.definition}`, topic: sectionOf(analysis, def.page), difficulty: "medium", page: def.page });
         continue;
       }
       const fact = facts[factIndex++];
       if (!fact) break;
-      out.push({ type, prompt: \`Explain the role of “\${fact.term}” as described in the document.\`, options: [], answerIndex: -1, answerText: fact.sentence.text, explanation: \`The document says: \${fact.sentence.text}\`, topic: sectionOf(analysis, fact.sentence.page), difficulty: "hard", page: fact.sentence.page });
+      out.push({ type, prompt: `Explain the role of “${fact.term}” as described in the document.`, options: [], answerIndex: -1, answerText: fact.sentence.text, explanation: `The document says: ${fact.sentence.text}`, topic: sectionOf(analysis, fact.sentence.page), difficulty: "hard", page: fact.sentence.page });
     }
   }
   if (options.difficulty !== "mixed") {
