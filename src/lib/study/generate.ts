@@ -91,6 +91,8 @@ export type QuestionOptions = {
   topics?: string[];
   /** Restrict to these pages (e.g. a study-guide topic). */
   pages?: number[];
+  /** Prompts the learner has already practised; prefer unseen questions. */
+  excludePrompts?: string[];
 };
 
 export function toQuestion(item: GeneratedQuestion, index: number, prefix: string, pageCount: number): Question | null {
@@ -130,7 +132,7 @@ export async function generateQuestions(
   if (source === "ai") {
     const document = await aiDocument(doc, options.pages ? new Set(options.pages) : undefined);
     const result = await generateWithAi<{ questions: GeneratedQuestion[] }>(
-      { task: "questions", document, options: { count: options.count, difficulty: options.difficulty, types: options.types, topics: options.topics } },
+      { task: "questions", document, options: { count: options.count, difficulty: options.difficulty, types: options.types, topics: options.topics, excludePrompts: options.excludePrompts } },
       signal,
     );
     items = result.questions;
@@ -143,9 +145,11 @@ export async function generateQuestions(
     }
     items = localQuestions(analysis, options);
   }
+  const excluded = new Set((options.excludePrompts ?? []).map((prompt) => prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim()));
   const questions = items
     .map((item, index) => toQuestion(item, index, doc.id, doc.pageCount))
     .filter((q): q is Question => Boolean(q))
+    .filter((q) => !excluded.has(q.prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim()))
     .slice(0, options.count);
   if (!questions.length) {
     throw new Error(
