@@ -163,12 +163,34 @@ export async function generateQuestions(
 
 const FLASHCARD_STOP_WORDS = new Set(["the", "and", "for", "with", "from", "that", "this", "are", "was", "were", "has", "have", "had", "its", "their", "they", "them", "into", "than", "then", "when", "where", "what", "which", "who", "how", "why", "can", "may", "will", "would", "should", "could", "does", "did", "not", "but", "also", "such", "used", "use", "using", "more", "most", "some", "each", "other", "these", "those", "being", "been", "between", "through", "about", "over", "under", "within", "without", "because", "there", "therefore", "itself"]);
 
+function contentTokens(text: string): string[] {
+  return [...new Set((text.toLowerCase().match(/[a-z0-9]+(?:[.'-][a-z0-9]+)*/g) ?? [])
+    .map((token) => token.replace(/^[.'-]+|[.'-]+$/g, ""))
+    .filter((token) => token.length > 1 && !FLASHCARD_STOP_WORDS.has(token)))];
+}
+
 function sourceSupportsAnswer(answer: string, sourceText: string): boolean {
-  const tokens = [...new Set((answer.toLowerCase().match(/[a-z0-9]{2,}/g) ?? []).filter((token) => !FLASHCARD_STOP_WORDS.has(token)))];
-  if (!tokens.length) return false;
-  const source = new Set((sourceText.toLowerCase().match(/[a-z0-9]{2,}/g) ?? []));
-  const matched = tokens.filter((token) => source.has(token)).length;
-  return tokens.length === 1 ? matched === 1 : matched >= 2 && matched / tokens.length >= 0.5;
+  const answerTokens = contentTokens(answer);
+  if (!answerTokens.length || !sourceText.trim()) return false;
+  const sourceTokens = new Set(contentTokens(sourceText));
+  const matched = answerTokens.filter((token) => sourceTokens.has(token));
+  const coverage = matched.length / answerTokens.length;
+  // Very short answers must match exactly; longer paraphrases need strong
+  // coverage of their meaningful terms rather than just two shared words.
+  if (answerTokens.length <= 2) return matched.length === answerTokens.length;
+  if (matched.length < 3 || coverage < 0.68) return false;
+  // Preserve numbers, dates, measurements and formula values exactly.
+  const numbers = answer.match(/\\b\\d+(?:[.,]\\d+)?%?\\b/g) ?? [];
+  const sourceNumbers = new Set(sourceText.match(/\\b\\d+(?:[.,]\\d+)?%?\\b/g) ?? []);
+  return numbers.every((number) => sourceNumbers.has(number));
+}
+
+function similarFront(a: string, b: string): boolean {
+  const left = new Set(contentTokens(a));
+  const right = new Set(contentTokens(b));
+  if (!left.size || !right.size) return false;
+  const intersection = [...left].filter((token) => right.has(token)).length;
+  return intersection / (left.size + right.size - intersection) >= 0.78;
 }
 
 function flashcardPageText(documentText: string, page: number): string {
@@ -189,11 +211,16 @@ export async function generateCards(doc: StudyDocument, count: number, source: A
     const cards = (result.cards ?? []).filter((card) => {
       const front = card.front?.trim() ?? "";
       const back = card.back?.trim() ?? "";
-      if (!front || !back || front.length > 160 || back.length > 400) return false;
+      if (!front || !back || front.length > 120 || back.length > 350) return false;
       const key = front.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
       if (!key || seen.has(key)) return false;
+      if ([...seen].some((existing) => similarFront(existing, key))) return false;
       const page = clampPage(card.page, doc.pageCount) ?? 0;
-      if (!sourceSupportsAnswer(back, flashcardPageText(document.text, page))) return false;
+      const pageText = flashcardPageText(document.text, page);
+      if (!sourceSupportsAnswer(back, pageText)) return false;
+      // A claimed page must independently support the answer. Page 0 means
+      // the model could not identify a page, so check the complete source.
+      if (page > 0 && !sourceSupportsAnswer(back, pageText)) return false;
       seen.add(key);
       return true;
     }).slice(0, count).map((card) => ({ ...card, front: card.front.trim(), back: card.back.trim(), topic: card.topic?.trim() || "General", page: clampPage(card.page, doc.pageCount) ?? 0 }));
