@@ -111,6 +111,16 @@ export const supabaseAuth = {
   async resetPassword(email: string, redirectTo = window.location.origin) {
     return request("/auth/v1/recover", { method: "POST", body: JSON.stringify({ email, redirect_to: redirectTo }) });
   },
+  async resendSignup(email: string, redirectTo = `${window.location.origin}/`) {
+    return request("/auth/v1/resend", {
+      method: "POST",
+      body: JSON.stringify({
+        type: "signup",
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: redirectTo },
+      }),
+    });
+  },
 };
 export async function supabaseRest<T>(table: string, query: string, init: RequestInit = {}): Promise<T> {
   const session = await supabaseAuth.getSession();
