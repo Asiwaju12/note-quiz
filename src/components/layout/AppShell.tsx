@@ -45,14 +45,40 @@ function SideLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
 function ThemeToggle({ compact }: { compact?: boolean }) {
   useSettings();
   const dark = resolvedTheme() === "dark";
+  const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const nextTheme = dark ? "light" : "dark";
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const root = document.documentElement;
+    root.style.setProperty("--theme-origin-x", `${rect.left + rect.width / 2}px`);
+    root.style.setProperty("--theme-origin-y", `${rect.top + rect.height / 2}px`);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const viewTransitionDocument = document as Document & {
+      startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+    };
+    if (!reduceMotion && viewTransitionDocument.startViewTransition) {
+      viewTransitionDocument.startViewTransition(() => updateSettings({ theme: nextTheme }));
+    } else {
+      updateSettings({ theme: nextTheme });
+    }
+  };
   return (
     <button
       type="button"
-      onClick={() => updateSettings({ theme: dark ? "light" : "dark" })}
+      onClick={toggleTheme}
       aria-label={dark ? "Switch to light theme" : "Switch to dark theme"}
+      title={dark ? "Switch to light theme" : "Switch to dark theme"}
       className={cn("grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-3 hover:text-text", compact && "h-10 w-10")}
     >
-      {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+      <motion.span
+        key={dark ? "sun" : "moon"}
+        initial={{ opacity: 0, rotate: -75, scale: 0.55 }}
+        animate={{ opacity: 1, rotate: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 420, damping: 22 }}
+        className="grid place-items-center"
+      >
+        {dark ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+      </motion.span>
     </button>
   );
 }
