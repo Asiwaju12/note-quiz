@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AiStatus } from "../../src/lib/ai/contract.js";
-import { AI_CONFIG, isAiConfigured } from "../../server/ai/provider.js";
+import { AI_CONFIG, hasGemini } from "../../server/ai/provider.js";
 /** GET /api/ai/status — reports Gemini configuration without exposing secrets. */
 export async function GET(): Promise<Response> {
-  const configured = isAiConfigured();
+  const configured = hasGemini();
   const body: AiStatus = { configured, provider: "google-gemini", model: configured ? AI_CONFIG.model : null };
   return Response.json(body);
 }
