@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, Play } from "lucide-react";
 import { useCollection } from "@/data/db";
-import type { SavedDeck } from "@/data/models";
+import type { Attempt, SavedDeck } from "@/data/models";
 import { updateResume } from "@/data/settings";
 import { shuffle } from "@/lib/game/deck";
 import { questionType, type QuestionType } from "@/lib/game/types";
@@ -18,6 +18,7 @@ export default function Practice() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const decks = useCollection<SavedDeck>("decks");
+  const attempts = useCollection<Attempt>("attempts");
   const deck = decks.find((d) => d.id === deckId);
   const runParam = params.get("run");
   const [run, setRun] = useState<{ key: string; ids: string[] } | null>(() => (runParam && hasSavedRun(runParam) ? { key: runParam, ids: [] } : null));
@@ -47,7 +48,18 @@ export default function Practice() {
   }
 
   const start = () => {
-    const picked = shuffle(pool).slice(0, count === 0 ? pool.length : count);
+    const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim();
+    const history = attempts.filter((attempt) => attempt.deckId === deck.id && attempt.answers.length > 0)
+      .sort((a, b) => b.finishedAt.localeCompare(a.finishedAt));
+    const seen = new Set(history.flatMap((attempt) => attempt.answers.map((answer) => normalise(answer.prompt))));
+    const unseen = pool.filter((question) => !seen.has(normalise(question.prompt)));
+    const available = unseen.length ? unseen : pool;
+    let shuffled = shuffle(available);
+    const previousFirst = history[0]?.answers[0]?.prompt;
+    if (shuffled.length > 1 && previousFirst && normalise(shuffled[0].prompt) === normalise(previousFirst)) {
+      shuffled.push(shuffled.shift()!);
+    }
+    const picked = shuffled.slice(0, count === 0 ? shuffled.length : count);
     const key = `deck-${deck.id}-${Date.now().toString(36)}`;
     updateResume({ deckId: deck.id });
     setRun({ key, ids: picked.map((q) => q.id) });
