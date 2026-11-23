@@ -161,11 +161,44 @@ export async function generateQuestions(
   return questions;
 }
 
+const FLASHCARD_STOP_WORDS = new Set(["the", "and", "for", "with", "from", "that", "this", "are", "was", "were", "has", "have", "had", "its", "their", "they", "them", "into", "than", "then", "when", "where", "what", "which", "who", "how", "why", "can", "may", "will", "would", "should", "could", "does", "did", "not", "but", "also", "such", "used", "use", "using", "more", "most", "some", "each", "other", "these", "those", "being", "been", "between", "through", "about", "over", "under", "within", "without", "because", "there", "therefore", "itself"]);
+
+function sourceSupportsAnswer(answer: string, sourceText: string): boolean {
+  const tokens = [...new Set((answer.toLowerCase().match(/[a-z0-9]{2,}/g) ?? []).filter((token) => !FLASHCARD_STOP_WORDS.has(token)))];
+  if (!tokens.length) return false;
+  const source = new Set((sourceText.toLowerCase().match(/[a-z0-9]{2,}/g) ?? []));
+  const matched = tokens.filter((token) => source.has(token)).length;
+  return tokens.length === 1 ? matched === 1 : matched >= 2 && matched / tokens.length >= 0.5;
+}
+
+function flashcardPageText(documentText: string, page: number): string {
+  if (!page) return documentText;
+  const marker = `[Page ${page}]`;
+  const start = documentText.indexOf(marker);
+  if (start < 0) return documentText;
+  const contentStart = start + marker.length;
+  const nextPage = documentText.indexOf("[Page ", contentStart);
+  return documentText.slice(contentStart, nextPage < 0 ? undefined : nextPage);
+}
+
 export async function generateCards(doc: StudyDocument, count: number, source: ArtifactSource, signal?: AbortSignal): Promise<GeneratedCard[]> {
   if (source === "ai") {
     const document = await aiDocument(doc);
     const result = await generateWithAi<{ cards: GeneratedCard[] }>({ task: "flashcards", document, options: { count } }, signal);
-    return result.cards.filter((card) => card.front?.trim() && card.back?.trim()).map((card) => ({ ...card, page: clampPage(card.page, doc.pageCount) ?? 0 }));
+    const seen = new Set<string>();
+    const cards = (result.cards ?? []).filter((card) => {
+      const front = card.front?.trim() ?? "";
+      const back = card.back?.trim() ?? "";
+      if (!front || !back || front.length > 160 || back.length > 400) return false;
+      const key = front.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      if (!key || seen.has(key)) return false;
+      const page = clampPage(card.page, doc.pageCount) ?? 0;
+      if (!sourceSupportsAnswer(back, flashcardPageText(document.text, page))) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, count).map((card) => ({ ...card, front: card.front.trim(), back: card.back.trim(), topic: card.topic?.trim() || "General", page: clampPage(card.page, doc.pageCount) ?? 0 }));
+    if (!cards.length) throw new Error("Recall AI couldn't verify enough flashcard answers against the uploaded notes. Try Basic Mode or select a clearer section of the document.");
+    return cards;
   }
   const cards = localFlashcards(await analysisFor(doc.id), count);
   if (!cards.length) throw new Error("Basic mode couldn't find enough readable text to create flashcards. Check whether the PDF contains selectable text rather than scanned images.");
