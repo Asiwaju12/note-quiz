@@ -345,13 +345,13 @@ export function localFlashcards(analysis: Analysis, count: number): GeneratedCar
 
 export function localQuestions(
   analysis: Analysis,
-  options: { count: number; types: QuestionTypeOption[]; difficulty: "easy" | "medium" | "hard" | "mixed"; topics?: string[] },
+  options: { count: number; types: QuestionTypeOption[]; difficulty: "easy" | "medium" | "hard" | "mixed"; topics?: string[]; excludePrompts?: string[] },
 ): GeneratedQuestion[] {
   const requestedTypes = options.types.length ? options.types : (["mcq", "tf", "fill", "short"] as QuestionTypeOption[]);
   const types = [...new Set(requestedTypes)];
   const allowFill = types.includes("fill");
   const inTopic = (page: number) => !options.topics?.length || options.topics.includes(sectionOf(analysis, page));
-  const defs = analysis.definitions.filter((d) => inTopic(d.page));
+  const defs = shuffled(analysis.definitions.filter((d) => inTopic(d.page)));
   const allTerms = [...new Set([...defs.map((d) => d.term), ...analysis.keywords.map((k) => k.term)])]
     .filter((term) => term.trim().length > 2);
   // Question prompts, headings, labels and fragments are not facts.
@@ -374,7 +374,7 @@ export function localQuestions(
     if (!/\b(is|are|was|were|has|have|had|can|could|will|would|should|must|does|do|did|means?|refers?|involves?|includes?|consists?|provides?|produces?|creates?|requires?|allows?|enables?|helps?|uses?|used|known|defined|called|formed|made|found|occurs?|takes?|plays?)\b/i.test(lower)) return false;
     return true;
   });
-  const facts = topSentences(factualSentences, Math.max(options.count * 16, 60))
+  const facts = shuffled(topSentences(factualSentences, Math.max(options.count * 16, 60)))
     .map((sentence) => {
       const matching = allTerms
         .filter((term) => new RegExp("\\b" + escapeRe(term.trim()) + "\\b", "i").test(sentence.text))
@@ -502,6 +502,8 @@ export function localQuestions(
       continue;
     }
     const key = question.prompt.toLowerCase().replace(/\s+/g, " ").trim();
+    const normalisedKey = question.prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
+    if ((options.excludePrompts ?? []).some((prompt) => prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim() === normalisedKey)) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(question);
