@@ -399,6 +399,16 @@ export function localQuestions(
       tokenize(item).some((token) => token.length > 2),
     ))]).slice(0, 3);
 
+  // Prefer alternatives defined in the same detected section. If that
+  // section is too small, fall back to the document's definitions only;
+  // unrelated high-frequency keywords make poor answer choices.
+  const definitionDistractors = (answer: string, page: number) => {
+    const section = sectionOf(analysis, page);
+    const sameSection = defs.filter((item) => sectionOf(analysis, item.page) === section).map((item) => item.term);
+    const pool = sameSection.length >= 4 ? sameSection : defs.map((item) => item.term);
+    return distractors(answer, pool);
+  };
+
   const out: GeneratedQuestion[] = [];
   const seen = new Set<string>();
   let defIndex = 0;
@@ -414,7 +424,7 @@ export function localQuestions(
     if (type === "mcq") {
       while (defIndex < defs.length && !question) {
         const def = defs[defIndex++];
-        const wrong = distractors(def.term, allTerms);
+        const wrong = definitionDistractors(def.term, def.page);
         if (wrong.length < 3) continue;
         const choices = shuffled([def.term, ...wrong]);
         question = {
@@ -429,7 +439,7 @@ export function localQuestions(
       // document. This keeps the requested MCQ format without inventing answers.
       while (!question && factIndex < facts.length) {
         const fact = facts[factIndex++];
-        const wrong = distractors(fact.term, allTerms);
+        const wrong = definitionDistractors(fact.term, fact.sentence.page);
         if (wrong.length < 3) continue;
         const choices = shuffled([fact.term, ...wrong]);
         question = {
