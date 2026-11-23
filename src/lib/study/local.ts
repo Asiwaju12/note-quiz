@@ -327,18 +327,46 @@ function shuffled<T>(items: T[], seed = Math.random()): T[] {
 }
 
 export function localFlashcards(analysis: Analysis, count: number): GeneratedCard[] {
-  const cards: GeneratedCard[] = analysis.definitions.map((def) => ({
-    front: `What is ${def.term}?`,
-    back: def.definition,
-    topic: sectionOf(analysis, def.page),
-    page: def.page,
-  }));
-  const terms = analysis.keywords.map((k) => k.term);
-  for (const sentence of topSentences(analysis.sentences, count * 2)) {
+  const cards: GeneratedCard[] = [];
+  const seen = new Set<string>();
+  const add = (card: GeneratedCard) => {
+    const frontKey = card.front.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!frontKey || seen.has(frontKey) || card.front.length > 120 || card.back.length > 350) return;
+    seen.add(frontKey);
+    cards.push(card);
+  };
+
+  // Definition cards use only definition patterns explicitly found in the notes.
+  for (const def of analysis.definitions) {
     if (cards.length >= count) break;
+    if (!def.term || !def.definition || wordCount(def.definition) < 4) continue;
+    add({
+      front: `What does ${def.term} mean?`,
+      back: def.definition,
+      topic: sectionOf(analysis, def.page),
+      page: def.page,
+    });
+  }
+
+  // Fill-in cards are made only from complete source sentences. The chosen
+  // term must occur exactly once, otherwise the answer could be visible.
+  const terms = analysis.keywords.map((k) => k.term);
+  for (const sentence of topSentences(analysis.sentences, count * 5)) {
+    if (cards.length >= count) break;
+    if (wordCount(sentence.text) < 8 || wordCount(sentence.text) > 45 || /[?？]/.test(sentence.text)) continue;
     const term = keywordIn(sentence, terms);
     if (!term) continue;
-    cards.push({ front: `Complete: ${blank(sentence.text, term)}`, back: term, topic: sectionOf(analysis, sentence.page), page: sentence.page });
+    const escaped = escapeRe(term);
+    const occurrences = sentence.text.match(new RegExp(`\\\\b${escaped}\\\\b`, "gi")) ?? [];
+    if (occurrences.length !== 1) continue;
+    const prompt = blank(sentence.text, term);
+    if (prompt === sentence.text || prompt.length > 120) continue;
+    add({
+      front: `Complete the statement: ${prompt}`,
+      back: term,
+      topic: sectionOf(analysis, sentence.page),
+      page: sentence.page,
+    });
   }
   return cards.slice(0, count);
 }
