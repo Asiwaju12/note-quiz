@@ -399,6 +399,21 @@ export function localQuestions(
           difficulty: difficultyOf(def.definition), page: def.page,
         };
       }
+      // If definition-based choices are unavailable, build a second kind of
+      // MCQ from a factual sentence, using only other terms found in this same
+      // document. This keeps the requested MCQ format without inventing answers.
+      while (!question && factIndex < facts.length) {
+        const fact = facts[factIndex++];
+        const wrong = distractors(fact.term, allTerms);
+        if (wrong.length < 3) continue;
+        const choices = shuffled([fact.term, ...wrong]);
+        question = {
+          type, prompt: "According to the document, which term completes this statement? " + blank(fact.sentence.text, fact.term),
+          options: choices, answerIndex: choices.indexOf(fact.term), answerText: fact.term,
+          explanation: fact.sentence.text, topic: sectionOf(analysis, fact.sentence.page),
+          difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page,
+        };
+      }
       if (!question && allowFill) {
         const fact = facts[factIndex++];
         if (fact) question = {
