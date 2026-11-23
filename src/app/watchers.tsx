@@ -42,8 +42,10 @@ export function StudyTimeTracker() {
       if (!visible || !recentlyActive || !isStudyRoute(pathRef.current)) return;
       // Cap a delayed browser timer so sleeping/suspended tabs are never
       // mistaken for active study time. Frequent checkpoints limit lost time.
-      const activeFrom = Math.max(previous, lastInteraction.current);
-      const elapsedMs = Math.min(15_000, Math.max(0, now - activeFrom));
+      // Count the full checkpoint interval when the learner was recently
+      // active. Using lastInteraction as the interval start discarded nearly
+      // all time for users who interacted repeatedly during a study session.
+      const elapsedMs = Math.min(15_000, Math.max(0, now - previous));
       if (elapsedMs >= 1_000) addStudyMinutes(elapsedMs / 60_000);
     };
 
