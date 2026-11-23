@@ -18,6 +18,7 @@ export function AuthDialog() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [pendingVerification, setPendingVerification] = useState(false);
 
   useEffect(() => {
     if (!authOpen) return;
@@ -33,6 +34,24 @@ export function AuthDialog() {
       ...(key === "name" && !handleEdited ? { handle: deriveHandle(value) } : {}),
     }));
     setError(null);
+    setPendingVerification(false);
+  };
+
+  const resendVerification = async () => {
+    const email = form.email.trim().toLowerCase();
+    if (!email || busy) return;
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    try {
+      await supabaseAuth.resendSignup(email);
+      setPendingVerification(true);
+      setInfo("If that account still needs verification, a fresh confirmation link has been sent.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not resend the confirmation email.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const submit = async (event: FormEvent) => {
@@ -52,7 +71,13 @@ export function AuthDialog() {
           ? await signIn(form.email, form.password)
           : await signUp({ name: form.name, email: form.email, handle: form.handle || deriveHandle(form.name), password: form.password });
       if (result.ok) handleAuth(result.account);
-      else setError(result.error);
+      else if (mode === "signup" && result.error.startsWith("Check your email to confirm")) {
+        setPendingVerification(true);
+        setInfo(result.error);
+      } else {
+        setError(result.error);
+        setPendingVerification(mode === "signin" && /email not confirmed|confirm your email/i.test(result.error));
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong.");
     } finally {
