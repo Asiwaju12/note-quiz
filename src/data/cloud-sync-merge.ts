@@ -43,7 +43,10 @@ export function mergeRows(remote: Row[], local: Row[]): Row[] {
   for (const row of remote) rows.set(row.id, row);
   for (const row of local) {
     const previous = rows.get(row.id);
-    if (!previous || timestampOf(row) > timestampOf(previous)) rows.set(row.id, row);
+    // Prefer the local copy on equal timestamps. DailyStat records created by
+    // older app versions had no updatedAt field, so both copies otherwise
+    // compared as timestamp 0 and cloud values could never receive new minutes.
+    if (!previous || timestampOf(row) >= timestampOf(previous)) rows.set(row.id, row);
   }
   return [...rows.values()];
 }
