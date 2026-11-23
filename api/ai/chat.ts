@@ -1,6 +1,5 @@
-import { friendlyAiError, hasClaude, hasGemini, isAiConfigured } from "../../server/ai/provider.js";
+import { friendlyAiError, hasGemini, isAiConfigured } from "../../server/ai/provider.js";
 import { streamGeminiText } from "../../server/ai/gemini.js";
-import { streamClaudeText } from "../../server/ai/claude.js";
 import { TUTOR_SYSTEM, buildChatUserContent } from "../../server/ai/prompts.js";
 import { authorize, clientKey, errorResponse, HttpError, ndjsonStream, rateLimit, readJson } from "../../server/http.js";
 import { MAX_CHAT_CONTEXT_CHARS, TUTOR_MODES, type ChatRequest } from "../../src/lib/ai/contract.js";
@@ -24,15 +23,10 @@ export async function POST(request:Request):Promise<Response>{
  contents.push({role:"user",parts:[{text:buildChatUserContent(body)}]});
  return ndjsonStream(async(send,signal)=>{
   try{
-   let emitted=false;
-   if(hasGemini()){
-    try{await streamGeminiText({system:TUTOR_SYSTEM,contents,maxOutputTokens:8192,signal,onText:value=>{emitted=true;send({t:"delta",text:value});}});send({t:"done",stop:"STOP"});return;}
-    catch(error){if(signal.aborted)return;if(emitted||!hasClaude())throw error;console.warn("[api/ai/chat] Gemini failed before output; using Claude backup.",error);}
-   }
-   if(!hasClaude())throw new Error("No AI provider is configured.");
-   await streamClaudeText({system:TUTOR_SYSTEM,contents,maxOutputTokens:8192,signal,onText:value=>send({t:"delta",text:value})});
+   if(!hasGemini())throw new Error("Gemini is not configured.");
+   await streamGeminiText({system:TUTOR_SYSTEM,contents,maxOutputTokens:8192,signal,onText:value=>send({t:"delta",text:value})});
    send({t:"done",stop:"STOP"});
-  }catch(error){if(signal.aborted)return;console.error("[api/ai/chat]",error);send({t:"error",message:friendlyAiError(error).message});}
+  }catch(error){if(signal.aborted)return;console.error("[api/ai/chat]",error);const friendly=friendlyAiError(error);send({t:"error",message:friendly.message,code:friendly.code});}
  },request.signal);
 }
 import type {IncomingMessage,ServerResponse} from "node:http";
