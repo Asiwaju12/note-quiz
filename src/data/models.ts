@@ -24,6 +24,8 @@ export type StudyDocument = {
   id: string;
   title: string;
   fileName: string;
+  /** Original MIME type, used to choose the correct reader. Optional for older saved PDFs. */
+  mimeType?: string;
   sizeBytes: number;
   pageCount: number;
   charCount: number;
