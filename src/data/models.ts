@@ -179,6 +179,8 @@ export type Attempt = {
 /** Aggregated per-day counters (id = YYYY-MM-DD local date). Drives streaks, goals, challenges, analytics. */
 export type DailyStat = {
   id: string;
+  /** Last local update; enables conflict-safe merging of per-day study totals. */
+  updatedAt?: ISODate;
   minutes: number;
   questions: number;
   correct: number;
