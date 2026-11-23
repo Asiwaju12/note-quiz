@@ -305,7 +305,7 @@ export function parseNotes(raw: string, rawTitle: string): ParseResult {
     deck: {
       title,
       kind: "notes",
-      questions: deduped.map((question, index) => ({
+      questions: shuffle(deduped).map((question, index) => ({
         ...question,
         id: `note-${index}-${hashPrompt(question.prompt)}`,
       })),
