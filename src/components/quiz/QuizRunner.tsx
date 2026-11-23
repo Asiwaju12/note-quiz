@@ -6,6 +6,7 @@ import type { AnswerRecord } from "@/data/models";
 import { recordAttempt } from "@/data/repos";
 import { clearResumeRun, updateResume } from "@/data/settings";
 import { questionType, type Question } from "@/lib/game/types";
+import { shuffle } from "@/lib/game/deck";
 import { expectedAnswer, grade, isAnswered, responseText, type Response } from "@/lib/learning/grading";
 import { sfx } from "@/lib/game/sound";
 import { cn } from "@/lib/cn";
@@ -140,7 +141,7 @@ export function QuizRunner({
 
   const restart = (subset?: Question[]) => {
     savedRef.current = false;
-    setQuestions(subset ?? initialQuestions);
+    setQuestions(shuffle(subset ?? initialQuestions));
     setIndex(0);
     setResponses({});
     setRevealed({});
