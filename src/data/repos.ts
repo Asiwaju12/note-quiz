@@ -77,7 +77,7 @@ export function todayStat(): DailyStat {
   return db.dailyStats.get(id) ?? emptyStat(id);
 }
 
-export function bumpToday(changes: Partial<Omit<DailyStat, "id">>): void {
+export function bumpToday(changes: Partial<Omit<DailyStat, "id" | "updatedAt">>): void {
   const current = todayStat();
   const next = { ...current, updatedAt: nowIso() };
   for (const [key, value] of Object.entries(changes) as Array<[keyof Omit<DailyStat, "id">, number]>) {
