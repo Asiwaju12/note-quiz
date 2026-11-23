@@ -10,13 +10,14 @@ import { Tabs } from "@/components/ui/Tabs";
 import { EmptyState } from "@/components/ui/primitives";
 import { ButtonLink } from "@/components/ui/Button";
 import { PdfViewer } from "@/components/study/PdfViewer";
+import { StudyFileViewer } from "@/components/study/StudyFileViewer";
 import { FlashcardsPanel, GuidePanel, KeyTermsPanel, NotesPanel, OverviewPanel, SummaryPanel } from "@/components/study/panels";
 import { PracticePanel } from "@/components/study/PracticePanel";
 import { ChatView } from "@/components/ai/ChatView";
 
 const TABS = [
   { id: "overview", label: "Overview", icon: <LayoutGrid className="h-4 w-4" /> },
-  { id: "pdf", label: "PDF", icon: <FileSearch className="h-4 w-4" /> },
+  { id: "pdf", label: "File", icon: <FileSearch className="h-4 w-4" /> },
   { id: "summary", label: "Summary", icon: <FileText className="h-4 w-4" /> },
   { id: "notes", label: "Notes", icon: <NotebookText className="h-4 w-4" /> },
   { id: "flashcards", label: "Flashcards", icon: <Layers className="h-4 w-4" /> },
@@ -79,7 +80,7 @@ export default function DocumentWorkspace() {
         </Link>
         <h1 className="text-[22px] font-semibold leading-tight tracking-[-0.03em] sm:text-[28px]">{doc.title}</h1>
         <p className="mt-1 text-sm text-subtle">
-          {doc.pageCount} pages · last read page {doc.lastPage}
+          {doc.fileName.toLowerCase().endsWith(".pdf") ? `${doc.pageCount} pages · last read page ${doc.lastPage}` : `${doc.pageCount} sections · ${doc.fileName}`}
         </p>
       </div>
 
@@ -87,7 +88,7 @@ export default function DocumentWorkspace() {
 
       <motion.div key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.22 }} role="tabpanel" aria-label={TABS.find((t) => t.id === tab)?.label}>
         {tab === "overview" && <OverviewPanel doc={doc} onTab={setTab} />}
-        {tab === "pdf" && <PdfViewer doc={doc} initialPage={pageParam} />}
+        {tab === "pdf" && (doc.fileName.toLowerCase().endsWith(".pdf") ? <PdfViewer doc={doc} initialPage={pageParam} /> : <StudyFileViewer doc={doc} />)}
         {tab === "summary" && <SummaryPanel doc={doc} onPage={openPage} />}
         {tab === "notes" && <NotesPanel doc={doc} onPage={openPage} />}
         {tab === "flashcards" && <FlashcardsPanel doc={doc} />}
