@@ -354,7 +354,17 @@ export function localQuestions(
   const defs = analysis.definitions.filter((d) => inTopic(d.page));
   const allTerms = [...new Set([...defs.map((d) => d.term), ...analysis.keywords.map((k) => k.term)])]
     .filter((term) => term.trim().length > 2);
-  const facts = topSentences(analysis.sentences.filter((s) => inTopic(s.page)), Math.max(options.count * 16, 60))
+  // Question prompts, headings, labels and fragments are not facts.
+  // In particular, never turn "What is X?" into a True/False statement.
+  const factualSentences = analysis.sentences.filter((sentence) => {
+    const text = sentence.text.trim();
+    if (!inTopic(sentence.page) || /[?？]$/.test(text)) return false;
+    if (/^(what|who|when|where|why|how|which|define|list|state|explain|discuss)\b/i.test(text)) return false;
+    if (/^(chapter|section|unit|topic|types? of|advantages? of|disadvantages? of|characteristics? of)\b/i.test(text)) return false;
+    if (wordCount(text) < 7 || !/[.!]$/.test(text)) return false;
+    return true;
+  });
+  const facts = topSentences(factualSentences, Math.max(options.count * 16, 60))
     .map((sentence) => {
       const sentenceStems = new Set(sentence.tokens);
       const matching = allTerms
@@ -428,8 +438,11 @@ export function localQuestions(
       const fact = facts[factIndex++];
       if (fact) {
         const swap = distractors(fact.term, allTerms)[0];
-        const makeFalse = Boolean(swap) && out.length % 2 === 1;
-        const statement = makeFalse ? fact.sentence.text.replace(new RegExp("\\b" + escapeRe(fact.term) + "\\b", "i"), swap!) : fact.sentence.text;
+        const replaced = swap
+          ? fact.sentence.text.replace(new RegExp("\\b" + escapeRe(fact.term) + "\\b", "i"), swap)
+          : fact.sentence.text;
+        const makeFalse = Boolean(swap) && replaced !== fact.sentence.text && out.length % 2 === 1;
+        const statement = makeFalse ? replaced : fact.sentence.text;
         const isTrue = !makeFalse;
         question = {
           type, prompt: "True or false: " + statement, options: ["True", "False"],
