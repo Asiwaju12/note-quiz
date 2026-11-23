@@ -123,11 +123,30 @@ async function extractDocument(file: File, onProgress: (percent: number) => void
   }
   if (IMAGE_EXTENSIONS.has(ext)) {
     const { createWorker } = await import("tesseract.js");
-    const worker = await createWorker("eng");
+    // Pin the browser worker and OCR assets to known, versioned locations.
+    // This avoids relying on Tesseract's implicit worker URL resolution in Vite.
+    const worker = await createWorker("eng", 1, {
+      workerPath: "https://cdn.jsdelivr.net/npm/tesseract.js@6.0.1/dist/worker.min.js",
+      corePath: "https://cdn.jsdelivr.net/npm/tesseract.js-core@6.0.0",
+      langPath: "https://tessdata.projectnaptha.com/4.0.0",
+      logger: (message: { status?: string; progress?: number }) => {
+        if (typeof message.progress === "number") {
+          // Keep the document visibly progressing while OCR downloads and recognises.
+          onProgress(Math.min(95, Math.max(5, Math.round(message.progress * 95))));
+        }
+      },
+    });
     try {
       const result = await worker.recognize(file);
+      const extracted = result.data.text?.trim() ?? "";
       onProgress(100);
-      return splitLongText(result.data.text);
+      if (extracted.length < 8) {
+        throw new Error("No readable text was detected in this image. Try a sharper, well-lit image with the text facing upright.");
+      }
+      return splitLongText(extracted);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Unknown OCR error";
+      throw new Error(`Image text extraction failed: ${detail}. Check your connection and try again, or upload a clearer image.`);
     } finally {
       await worker.terminate();
     }
@@ -166,6 +185,8 @@ async function processDocument(docId: string, file: File) {
   } catch (error) {
     const message = error instanceof Error && /password/i.test(error.message)
       ? "This PDF is password-protected."
+      : error instanceof Error && /Image text extraction failed|No readable text was detected in this image/i.test(error.message)
+        ? error.message
       : error instanceof Error && /quota|full/i.test(error.message)
         ? "Your browser storage is full. Delete some documents and try again."
         : error instanceof Error && error.message.includes("No readable text")
