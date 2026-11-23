@@ -8,7 +8,7 @@ export async function GET(): Promise<Response> {
   return Response.json(body);
 }
 export default async function handler(_request: IncomingMessage, response: ServerResponse): Promise<void> {
-  const configured = isAiConfigured();
+  const configured = hasGemini();
   const body: AiStatus = { configured, provider: "google-gemini", model: configured ? AI_CONFIG.model : null };
   response.statusCode = 200;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
