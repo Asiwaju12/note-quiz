@@ -7,19 +7,23 @@ export const AI_CONFIG = {
 };
 export function hasGemini(): boolean { return Boolean(process.env.GEMINI_API_KEY?.trim()); }
 export function hasClaude(): boolean { return Boolean(process.env.ANTHROPIC_API_KEY?.trim()); }
-export function isAiConfigured(): boolean { return hasGemini() || hasClaude(); }
+export function isAiConfigured(): boolean { return hasGemini(); }
 export function getApiKey(): string {
   const key = process.env.GEMINI_API_KEY?.trim();
   if (!key) throw new Error("GEMINI_API_KEY is not configured.");
   return key;
 }
-export function friendlyAiError(error: unknown): { status: number; message: string } {
-  const message = error instanceof Error ? error.message : "";
-  if (/API key not valid|invalid api key|unauthenticated/i.test(message)) return { status: 502, message: "Recall AI is temporarily unavailable. Please try again later." };
-  if (/permission|not found|unsupported model/i.test(message)) return { status: 502, message: "Recall AI is temporarily unavailable. Please try again later." };
-  if (/generate_content_free_tier_requests|daily.*quota|quota.*exceeded|per day/i.test(message)) return { status: 429, message: "Recall AI is temporarily busy. Please try again; Basic mode is also available." };
-  if (/quota|resource exhausted|rate limit|429/i.test(message)) return { status: 429, message: "Recall AI is temporarily busy. Please try again; Basic mode is also available." };
-  if (/too large|token limit|maximum.*token/i.test(message)) return { status: 413, message: "This request is too large for the AI. Try a shorter question or document section." };
-  if (/fetch failed|network|timeout/i.test(message)) return { status: 503, message: "Recall AI couldn't connect. Please check your connection and try again." };
-  return { status: 502, message: "Recall AI couldn't complete that response. Please try again." };
+export function friendlyAiError(error: unknown): { status: number; message: string; code: string } {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (/GenerateRequestsPerDay|RequestsPerDay|free_tier_requests|daily.*quota|quota.*per day|per day.*limit/i.test(message)) {
+    return { status: 429, code: "daily_quota", message: "Recall AI has reached Gemini's daily free-tier request limit. You can continue studying with Basic Mode. AI access should return after Google's daily quota resets." };
+  }
+  if (/GenerateRequestsPerMinute|RequestsPerMinute|requests per minute|per minute.*limit|rate limit|RESOURCE_EXHAUSTED|resource exhausted|429|quota/i.test(message)) {
+    return { status: 429, code: "rate_limited", message: "Recall AI has reached Gemini's request limit. Please wait before trying AI again, or continue with Basic Mode." };
+  }
+  if (/API key not valid|invalid api key|unauthenticated/i.test(message)) return { status: 502, code: "invalid_api_key", message: "Recall AI is temporarily unavailable because its Gemini connection needs attention. Please use Basic Mode for now." };
+  if (/permission|not found|unsupported model/i.test(message)) return { status: 502, code: "model_unavailable", message: "Recall AI is temporarily unavailable. Please use Basic Mode for now." };
+  if (/too large|token limit|maximum.*token/i.test(message)) return { status: 413, code: "too_large", message: "This request is too large for the AI. Try a shorter question or document section." };
+  if (/fetch failed|network|timeout/i.test(message)) return { status: 503, code: "network", message: "Recall AI couldn't connect. Please check your connection and try again, or use Basic Mode." };
+  return { status: 502, code: "ai_unavailable", message: "Recall AI couldn't complete that response. Please try again or continue with Basic Mode." };
 }
