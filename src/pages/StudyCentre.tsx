@@ -6,8 +6,7 @@ import { useCollection } from "@/data/db";
 import { useAccount } from "@/app/account";
 import type { Folder, StudyDocument } from "@/data/models";
 import { createFolder, deleteDocument, deleteFolder, renameFolder, updateDocument } from "@/data/repos";
-import { ingestPdf, MAX_PDF_BYTES, titleFromFileName } from "@/lib/study/ingest";
-import { validatePdfFile } from "@/lib/study/pdf";
+import { ingestStudyFile, MAX_FILE_BYTES, titleFromFileName, validateStudyFile } from "@/lib/study/ingest";
 import { formatBytes, formatRelative, useDebounced } from "@/lib/hooks";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +38,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
   const choose = (list: FileList | null) => {
     if (!list?.length) return;
     const picked = Array.from(list).slice(0, 10);
-    const problems = picked.map((file) => validatePdfFile(file, MAX_PDF_BYTES)).filter(Boolean);
+    const problems = picked.map((file) => validateStudyFile(file, MAX_FILE_BYTES)).filter(Boolean);
     const valid = picked.filter((file) => !validatePdfFile(file, MAX_PDF_BYTES));
     setError(problems.length ? `${problems.length} file${problems.length > 1 ? "s were" : " was"} skipped: ${problems[0]}` : null);
     setFiles(valid);
@@ -49,8 +48,8 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
   const submit = async () => {
     if (!files.length) return;
     try {
-      for (const file of files) await ingestPdf(file, { title: files.length === 1 ? title : undefined, folderId: folderId || null });
-      toast(files.length === 1 ? "Uploading your PDF" : `Uploading ${files.length} PDFs`, { description: "Text extraction runs on this device. You can keep working." });
+      for (const file of files) await ingestStudyFile(file, { title: files.length === 1 ? title : undefined, folderId: folderId || null });
+      toast(files.length === 1 ? "Uploading your study material" : `Uploading ${files.length} files`, { description: "Text extraction runs on this device. You can keep working." });
       onClose();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Upload failed.");
@@ -62,7 +61,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
       open={open}
       onClose={onClose}
       title="Upload study material"
-      description="Lecture notes, textbook chapters or slides as PDF."
+      description="Add documents, presentations, spreadsheets, text files or images."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -74,7 +73,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
         </>
       }
     >
-      <input ref={inputRef} type="file" accept="application/pdf,.pdf" multiple className="sr-only" onChange={(e) => choose(e.target.files)} aria-label="Choose PDF files" />
+      <input ref={inputRef} type="file" accept=".pdf,.docx,.pptx,.xlsx,.txt,.md,.csv,.rtf,.json,.html,.htm,.png,.jpg,.jpeg,.webp,.bmp,.tif,.tiff,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,text/markdown,text/csv,image/*" multiple className="sr-only" onChange={(e) => choose(e.target.files)} aria-label="Choose study files" />
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
@@ -103,7 +102,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
           </span>
         ) : (
           <span className="mt-3 text-sm">
-            <span className="font-medium text-accent-text">Choose PDFs</span> <span className="hidden sm:inline">or drag them here</span>
+            <span className="font-medium text-accent-text">Choose files</span> <span className="hidden sm:inline">or drag them here</span>
             <span className="mt-0.5 block text-xs text-subtle">Up to {MAX_PDF_BYTES / 1024 / 1024} MB each</span>
           </span>
         )}
@@ -129,7 +128,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
         )}
         <p className="text-xs leading-relaxed text-subtle">
           {account
-            ? "Your PDF is saved on this device first. Recall Quiz will securely back it up to your private account storage so it can be restored on your other devices."
+            ? "Your file is saved on this device first. Recall Quiz will securely back it up to your private account storage so it can be restored on your other devices."
             : "Guest files and extracted text stay in this browser. Sign in to enable private cloud backup and access your study materials on other devices."}
         </p>
       </div>
@@ -162,7 +161,7 @@ function MoveDialog({ doc, folders, onClose }: { doc: StudyDocument | null; fold
 
 function DocumentCard({ doc, folder, onRename, onMove }: { doc: StudyDocument; folder?: Folder; onRename: () => void; onMove: () => void }) {
   const remove = async () => {
-    const ok = await confirmAction({ title: `Delete “${doc.title}”?`, description: "This removes the PDF, its generated notes, flashcards, highlights and AI chats. This can't be undone.", confirmLabel: "Delete", danger: true });
+    const ok = await confirmAction({ title: `Delete “${doc.title}”?`, description: "This removes the original file, its generated notes, flashcards, highlights and AI chats. This can't be undone.", confirmLabel: "Delete", danger: true });
     if (!ok) return;
     await deleteDocument(doc.id);
     toast("Document deleted");
@@ -254,10 +253,10 @@ export default function StudyCentre() {
     <div>
       <PageHeader
         title="Study Centre"
-        description="Upload a PDF and turn it into summaries, notes, flashcards and practice questions."
+        description="Upload notes, documents, slides or images and turn them into study materials."
         actions={
           <Button onClick={() => setUploadOpen(true)} icon={<Plus className="h-4 w-4" />}>
-            Upload PDF
+            Upload files
           </Button>
         }
       />
@@ -317,7 +316,7 @@ export default function StudyCentre() {
           description="Upload lecture notes, a textbook chapter or slides as a PDF. Each document gets its own workspace with a reader, summary, notes, flashcards and practice."
           action={
             <Button onClick={() => setUploadOpen(true)} icon={<Plus className="h-4 w-4" />}>
-              Upload your first PDF
+              Upload your first study file
             </Button>
           }
         />
