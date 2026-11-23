@@ -180,8 +180,8 @@ function sourceSupportsAnswer(answer: string, sourceText: string): boolean {
   if (answerTokens.length <= 2) return matched.length === answerTokens.length;
   if (matched.length < 3 || coverage < 0.68) return false;
   // Preserve numbers, dates, measurements and formula values exactly.
-  const numbers = answer.match(/\\b\\d+(?:[.,]\\d+)?%?\\b/g) ?? [];
-  const sourceNumbers = new Set(sourceText.match(/\\b\\d+(?:[.,]\\d+)?%?\\b/g) ?? []);
+  const numbers = answer.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? [];
+  const sourceNumbers = new Set(sourceText.match(/\b\d+(?:[.,]\d+)?%?\b/g) ?? []);
   return numbers.every((number) => sourceNumbers.has(number));
 }
 
