@@ -137,7 +137,20 @@ export function buildGenerateUserContent(request: GenerateRequest): string {
     case "guide":
       return `${header}Break this document into 3–12 study topics in the order a student should learn them. For each: a clear title, a 1–2 sentence summary, the page numbers it covers, a realistic study time in minutes (10–60), and 2–4 learning objectives starting with a verb.`;
     case "flashcards":
-      return `${header}Create ${count} high-quality flashcards. Fronts are specific questions or terms; backs are concise, complete answers (one to three sentences). Cover the most testable ideas, avoid duplicates and trivia. ${topicLine}`;
+      return `${header}Create up to ${count} accurate, exam-useful flashcards using ONLY facts explicitly supported by this document. Accuracy is more important than reaching the requested count; return fewer cards rather than guessing.
+
+Flashcard quality rules:
+- Each card tests ONE important idea: a definition, process, cause/effect, distinction, formula meaning, condition, or key relationship.
+- The front must ask a clear, specific question that makes sense on its own. Avoid vague prompts such as "Explain this", "What is it?", or "What are the features?"
+- The back must answer that exact question directly in 1–2 concise but complete sentences. Preserve important conditions, exceptions, units, and qualifiers from the source.
+- Do not invent, assume, embellish, or use outside knowledge. Do not turn an example into a universal rule.
+- Do not create cards from headings, contents pages, learning objectives, question prompts, incomplete sentences, or OCR fragments.
+- Avoid duplicates, near-duplicates, trivial facts, and cards whose answer is merely "yes", "no", or an unexplained single word.
+- Use the exact technical terms used in the document where possible. Explain an abbreviation only when the document explains it.
+- Set page to the page containing the supporting information. Use 0 if the page cannot be identified; never guess.
+- If the source is unclear or contradictory, omit that card instead of resolving it by guessing.
+- Keep fronts under 120 characters and backs under 350 characters.
+${topicLine}`;
     case "questions": {
       const types = options.types?.length ? options.types : ["mcq", "tf", "short", "fill"];
       const difficulty = options.difficulty ?? "mixed";
