@@ -502,8 +502,8 @@ export function localQuestions(
       continue;
     }
     const key = question.prompt.toLowerCase().replace(/\s+/g, " ").trim();
-    const normalisedKey = question.prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
-    if ((options.excludePrompts ?? []).some((prompt) => prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim() === normalisedKey)) continue;
+    const normalisedKey = question.prompt.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim();
+    if ((options.excludePrompts ?? []).some((prompt) => prompt.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim() === normalisedKey)) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(question);
