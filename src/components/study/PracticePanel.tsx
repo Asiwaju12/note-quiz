@@ -63,7 +63,14 @@ export function PracticePanel({
         ...target.questions.map((q) => normalise(q.prompt)),
         ...attempts.filter((a) => a.docId === doc.id).flatMap((a) => a.answers.map((answer) => normalise(answer.prompt))),
       ]);
-      let questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined, excludePrompts: [...seen] }, source, signal);
+      let questions: Question[] = [];
+      try {
+        questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined, excludePrompts: [...seen] }, source, signal);
+      } catch (error) {
+        // An empty result means the available source material has all been seen.
+        // Other generation failures should still be surfaced to the normal job UI.
+        if (!(error instanceof Error) || !/no usable questions|couldn't build questions/i.test(error.message)) throw error;
+      }
       // If the source has no unseen questions left, begin a fresh shuffled review cycle.
       if (!questions.length) questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
       questions = shuffle(questions);
