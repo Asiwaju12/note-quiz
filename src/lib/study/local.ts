@@ -363,6 +363,9 @@ export function localQuestions(
     // Filter questions even when OCR leaves spaces before punctuation or
     // sentence splitting has removed the final question mark.
     if (/[?？]/.test(text) || /^(what|who|when|where|why|how|which|whose|whom|define|list|state|explain|discuss|describe|mention|identify)\b/i.test(text)) return false;
+    // Reject question stems even when PDF extraction dropped the question mark.
+    if (/^(what|who|when|where|why|how|which|whose|whom)\\s+(?:is|are|was|were|do|does|did|can|could|would|should|will|has|have)\\b/i.test(text)) return false;
+    if (/^(?:true\\s+or\\s+false|multiple\\s+choice|question\\s*\\d*)\\b/i.test(text)) return false;
     if (/^(chapter|section|unit|topic|types? of|advantages? of|disadvantages? of|characteristics? of|contents|learning objectives?)\b/i.test(text)) return false;
     if (wordCount(text) < 7 || !/[.!]$/.test(text)) return false;
     // A useful factual statement needs a subject and a predicate; reject
@@ -445,24 +448,18 @@ export function localQuestions(
         };
       }
     } else if (type === "tf") {
-      const fact = facts[factIndex++];
-      if (fact) {
-        // Create false statements only by safely negating an explicit
-        // auxiliary/copula. Arbitrary keyword substitution can change a
-        // sentence into nonsense or an accidentally true statement.
-        const negated = fact.sentence.text.replace(
-          /\b(is|are|was|were|has|have|had|can|could|will|would|should|must|does|do|did)\b/i,
-          "$1 not",
-        );
-        const canNegate = negated !== fact.sentence.text;
-        const makeFalse = canNegate && out.length % 2 === 1;
-        const statement = makeFalse ? negated : fact.sentence.text;
-        const isTrue = !makeFalse;
+      // Basic mode cannot reliably verify an invented false claim. Use only
+      // complete source-backed statements; never flip truth by inserting
+      // "not", which can create double negatives or change the meaning.
+      while (factIndex < facts.length && !question) {
+        const fact = facts[factIndex++];
+        const statement = fact.sentence.text.trim();
+        if (!statement || /[?？]/.test(statement) || wordCount(statement) < 7) continue;
         question = {
           type, prompt: "True or false: " + statement, options: ["True", "False"],
-          answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False",
-          explanation: isTrue ? "The document states: “" + fact.sentence.text + "”" : "The document states the original fact as: “" + fact.sentence.text + "”. The added negation makes this statement false.",
-          topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page,
+          answerIndex: 0, answerText: "True",
+          explanation: "True. This complete statement is taken from the uploaded document: “" + statement + "”",
+          topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(statement), page: fact.sentence.page,
         };
       }
     } else if (type === "fill") {
