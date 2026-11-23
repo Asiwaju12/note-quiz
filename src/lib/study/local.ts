@@ -383,7 +383,9 @@ export function localQuestions(
   let guard = 0;
   while (out.length < options.count && guard < options.count * 20) {
     guard += 1;
-    const type = types[out.length % types.length];
+    // Advance the type cursor on every attempt, not only when a question is added.
+    // Otherwise one unavailable type (e.g. MCQ with too few distractors) blocks all other types.
+    const type = types[(guard - 1) % types.length];
     let question: GeneratedQuestion | undefined;
 
     if (type === "mcq") {
@@ -473,7 +475,10 @@ export function localQuestions(
 
   if (options.difficulty !== "mixed") {
     const matching = out.filter((q) => q.difficulty === options.difficulty);
-    if (matching.length >= options.count) return matching.slice(0, options.count);
+    const other = out.filter((q) => q.difficulty !== options.difficulty);
+    // Prefer the requested level, but do not silently return a tiny quiz when
+    // the source text contains only a few questions at that estimated level.
+    return [...matching, ...other].slice(0, options.count);
   }
   return out.slice(0, options.count);
 }
