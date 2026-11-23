@@ -145,11 +145,11 @@ export async function generateQuestions(
     }
     items = localQuestions(analysis, options);
   }
-  const excluded = new Set((options.excludePrompts ?? []).map((prompt) => prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim()));
+  const excluded = new Set((options.excludePrompts ?? []).map((prompt) => prompt.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim()));
   const questions = items
     .map((item, index) => toQuestion(item, index, doc.id, doc.pageCount))
     .filter((q): q is Question => Boolean(q))
-    .filter((q) => !excluded.has(q.prompt.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim()))
+    .filter((q) => !excluded.has(q.prompt.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim()))
     .slice(0, options.count);
   if (!questions.length) {
     throw new Error(
