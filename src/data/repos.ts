@@ -79,9 +79,10 @@ export function todayStat(): DailyStat {
 
 export function bumpToday(changes: Partial<Omit<DailyStat, "id">>): void {
   const current = todayStat();
-  const next = { ...current };
+  const next = { ...current, updatedAt: nowIso() };
   for (const [key, value] of Object.entries(changes) as Array<[keyof Omit<DailyStat, "id">, number]>) {
-    next[key] = Math.round(((current[key] ?? 0) + value) * 100) / 100;
+    // Keep sub-minute checkpoints precise (the timer records every 10 seconds).
+    next[key] = Math.round(((current[key] ?? 0) + value) * 10_000) / 10_000;
   }
   db.dailyStats.put(next);
 }
