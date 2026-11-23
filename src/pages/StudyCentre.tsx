@@ -39,7 +39,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
     if (!list?.length) return;
     const picked = Array.from(list).slice(0, 10);
     const problems = picked.map((file) => validateStudyFile(file, MAX_FILE_BYTES)).filter(Boolean);
-    const valid = picked.filter((file) => !validatePdfFile(file, MAX_PDF_BYTES));
+    const valid = picked.filter((file) => !validateStudyFile(file, MAX_FILE_BYTES));
     setError(problems.length ? `${problems.length} file${problems.length > 1 ? "s were" : " was"} skipped: ${problems[0]}` : null);
     setFiles(valid);
     if (valid.length === 1) setTitle(titleFromFileName(valid[0].name));
@@ -103,7 +103,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
         ) : (
           <span className="mt-3 text-sm">
             <span className="font-medium text-accent-text">Choose files</span> <span className="hidden sm:inline">or drag them here</span>
-            <span className="mt-0.5 block text-xs text-subtle">Up to {MAX_PDF_BYTES / 1024 / 1024} MB each</span>
+            <span className="mt-0.5 block text-xs text-subtle">Up to {MAX_FILE_BYTES / 1024 / 1024} MB each</span>
           </span>
         )}
       </button>
