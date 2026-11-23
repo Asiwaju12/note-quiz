@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Target } from "lucide-react";
 import { useCollection } from "@/data/db";
-import type { ArtifactSource, SavedDeck, StudyDocument } from "@/data/models";
+import type { ArtifactSource, Attempt, SavedDeck, StudyDocument } from "@/data/models";
 import { getOrCreateDocDeck, updateDeck } from "@/data/repos";
 import type { QuestionTypeOption } from "@/lib/ai/contract";
 import type { Question } from "@/lib/game/types";
@@ -36,6 +36,7 @@ export function PracticePanel({
 }) {
   const guide = useArtifact(doc.id, "guide");
   const decks = useCollection<SavedDeck>("decks");
+  const attempts = useCollection<Attempt>("attempts");
   const deck = decks.find((d) => d.docId === doc.id && d.kind === "document");
   const [count, setCount] = useState(10);
   const [difficulty, setDifficulty] = useState<"mixed" | "easy" | "medium" | "hard">("mixed");
@@ -56,10 +57,19 @@ export function PracticePanel({
 
   const generate = (source: ArtifactSource) => {
     void runJob(jobKey, async (signal) => {
-      const questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
       const target = getOrCreateDocDeck(doc);
-      const known = new Set(target.questions.map((q) => q.prompt.toLowerCase()));
-      updateDeck(target.id, { questions: [...target.questions, ...questions.filter((q) => !known.has(q.prompt.toLowerCase()))], source });
+      const normalise = (value: string) => value.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
+      const seen = new Set([
+        ...target.questions.map((q) => normalise(q.prompt)),
+        ...attempts.filter((a) => a.docId === doc.id).flatMap((a) => a.answers.map((answer) => normalise(answer.prompt))),
+      ]);
+      let questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined, excludePrompts: [...seen] }, source, signal);
+      // If the source has no unseen questions left, begin a fresh shuffled review cycle.
+      if (!questions.length) questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
+      questions = shuffle(questions);
+      const known = new Set(target.questions.map((q) => normalise(q.prompt)));
+      const fresh = questions.filter((q) => !known.has(normalise(q.prompt)));
+      if (fresh.length) updateDeck(target.id, { questions: [...target.questions, ...fresh], source });
       start(questions, `${doc.title} · ${topic || "Practice"}`);
       return questions;
     });
