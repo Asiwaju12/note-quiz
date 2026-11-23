@@ -59,10 +59,9 @@ export function PracticePanel({
     void runJob(jobKey, async (signal) => {
       const target = getOrCreateDocDeck(doc);
       const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim();
-      const seen = new Set([
-        ...target.questions.map((q) => normalise(q.prompt)),
-        ...attempts.filter((a) => a.docId === doc.id).flatMap((a) => a.answers.map((answer) => normalise(answer.prompt))),
-      ]);
+      const seen = new Set(
+        attempts.filter((a) => a.docId === doc.id).flatMap((a) => a.answers.map((answer) => normalise(answer.prompt))),
+      );
       let questions: Question[] = [];
       try {
         questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined, excludePrompts: [...seen] }, source, signal);
@@ -71,8 +70,14 @@ export function PracticePanel({
         // Other generation failures should still be surfaced to the normal job UI.
         if (!(error instanceof Error) || !/no usable questions|couldn't build questions/i.test(error.message)) throw error;
       }
-      // If the source has no unseen questions left, begin a fresh shuffled review cycle.
-      if (!questions.length) questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
+      // If no unseen questions remain, rotate through the saved bank first.
+      if (!questions.length) {
+        const reviewed = target.questions.filter((q) => (!topic || q.topic === topic) && (!types.length || types.includes(q.type as QuestionTypeOption)));
+        questions = shuffle(reviewed).slice(0, count);
+        if (!questions.length) {
+          questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
+        }
+      }
       questions = shuffle(questions);
       const latestAttempt = attempts
         .filter((attempt) => attempt.docId === doc.id && attempt.answers.length > 0)
