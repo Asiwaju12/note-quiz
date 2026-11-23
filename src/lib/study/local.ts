@@ -357,19 +357,29 @@ export function localQuestions(
   // Question prompts, headings, labels and fragments are not facts.
   // In particular, never turn "What is X?" into a True/False statement.
   const factualSentences = analysis.sentences.filter((sentence) => {
-    const text = sentence.text.trim();
-    if (!inTopic(sentence.page) || /[?？]$/.test(text)) return false;
-    if (/^(what|who|when|where|why|how|which|define|list|state|explain|discuss)\b/i.test(text)) return false;
-    if (/^(chapter|section|unit|topic|types? of|advantages? of|disadvantages? of|characteristics? of)\b/i.test(text)) return false;
+    const text = sentence.text.trim().replace(/\s+([?!.,;:])/g, "$1");
+    const lower = text.toLowerCase();
+    if (!inTopic(sentence.page)) return false;
+    // Filter questions even when OCR leaves spaces before punctuation or
+    // sentence splitting has removed the final question mark.
+    if (/[?？]/.test(text) || /^(what|who|when|where|why|how|which|whose|whom|define|list|state|explain|discuss|describe|mention|identify)\b/i.test(text)) return false;
+    if (/^(chapter|section|unit|topic|types? of|advantages? of|disadvantages? of|characteristics? of|contents|learning objectives?)\b/i.test(text)) return false;
     if (wordCount(text) < 7 || !/[.!]$/.test(text)) return false;
+    // A useful factual statement needs a subject and a predicate; reject
+    // fragments, labels and bare headings that OCR sometimes turns into lines.
+    if (/^(the following|below are|above are|examples? of|such as|including|and then|or the)\b/i.test(lower)) return false;
+    if (!/\b(is|are|was|were|has|have|had|can|could|will|would|should|must|does|do|did|means?|refers?|involves?|includes?|consists?|provides?|produces?|creates?|requires?|allows?|enables?|helps?|uses?|used|known|defined|called|formed|made|found|occurs?|takes?|plays?)\b/i.test(lower)) return false;
     return true;
   });
   const facts = topSentences(factualSentences, Math.max(options.count * 16, 60))
     .map((sentence) => {
-      const sentenceStems = new Set(sentence.tokens);
       const matching = allTerms
-        .filter((term) => tokenize(term).some((token) => sentenceStems.has(token)))
-        .sort((a, b) => b.length - a.length);
+        .filter((term) => new RegExp("\\b" + escapeRe(term.trim()) + "\\b", "i").test(sentence.text))
+        .sort((a, b) => {
+          const aDefined = defs.some((d) => d.term.toLowerCase() === a.toLowerCase());
+          const bDefined = defs.some((d) => d.term.toLowerCase() === b.toLowerCase());
+          return Number(bDefined) - Number(aDefined) || b.length - a.length;
+        });
       const term = matching[0];
       return term ? { sentence, term } : null;
     })
@@ -437,17 +447,21 @@ export function localQuestions(
     } else if (type === "tf") {
       const fact = facts[factIndex++];
       if (fact) {
-        const swap = distractors(fact.term, allTerms)[0];
-        const replaced = swap
-          ? fact.sentence.text.replace(new RegExp("\\b" + escapeRe(fact.term) + "\\b", "i"), swap)
-          : fact.sentence.text;
-        const makeFalse = Boolean(swap) && replaced !== fact.sentence.text && out.length % 2 === 1;
-        const statement = makeFalse ? replaced : fact.sentence.text;
+        // Create false statements only by safely negating an explicit
+        // auxiliary/copula. Arbitrary keyword substitution can change a
+        // sentence into nonsense or an accidentally true statement.
+        const negated = fact.sentence.text.replace(
+          /\b(is|are|was|were|has|have|had|can|could|will|would|should|must|does|do|did)\b/i,
+          "$1 not",
+        );
+        const canNegate = negated !== fact.sentence.text;
+        const makeFalse = canNegate && out.length % 2 === 1;
+        const statement = makeFalse ? negated : fact.sentence.text;
         const isTrue = !makeFalse;
         question = {
           type, prompt: "True or false: " + statement, options: ["True", "False"],
           answerIndex: isTrue ? 0 : 1, answerText: isTrue ? "True" : "False",
-          explanation: isTrue ? "The document states: “" + fact.sentence.text + "”" : "The document says “" + fact.term + "”, not “" + swap + "”: “" + fact.sentence.text + "”",
+          explanation: isTrue ? "The document states: “" + fact.sentence.text + "”" : "The document states the original fact as: “" + fact.sentence.text + "”. The added negation makes this statement false.",
           topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(fact.sentence.text), page: fact.sentence.page,
         };
       }
