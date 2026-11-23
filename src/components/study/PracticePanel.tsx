@@ -58,7 +58,7 @@ export function PracticePanel({
   const generate = (source: ArtifactSource) => {
     void runJob(jobKey, async (signal) => {
       const target = getOrCreateDocDeck(doc);
-      const normalise = (value: string) => value.toLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
+      const normalise = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/gi, " ").trim();
       const seen = new Set([
         ...target.questions.map((q) => normalise(q.prompt)),
         ...attempts.filter((a) => a.docId === doc.id).flatMap((a) => a.answers.map((answer) => normalise(answer.prompt))),
