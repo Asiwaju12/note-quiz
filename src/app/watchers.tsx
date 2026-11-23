@@ -12,29 +12,67 @@ import { addStudyMinutes, bumpToday, db, logActivity } from "@/data/repos";
 import { ACHIEVEMENTS } from "@/lib/learning/achievements";
 import { challengeProgress, challengesFor } from "@/lib/learning/challenges";
 import { toast } from "@/components/ui/Toast";
+import { useAccount } from "./account";
+import { flushCloudSync } from "@/data/cloud-sync";
 
 const STUDY_ROUTES = ["/study/", "/review", "/quiz/", "/exam", "/ai", "/decks/"];
 
 export function StudyTimeTracker() {
   const { pathname } = useLocation();
+  const { account, mode } = useAccount();
   const lastInteraction = useRef(Date.now());
+  const lastCheckpoint = useRef(Date.now());
   const pathRef = useRef(pathname);
+  const accountRef = useRef(account?.id);
   pathRef.current = pathname;
+  accountRef.current = account?.id;
 
   useEffect(() => {
-    const mark = () => (lastInteraction.current = Date.now());
     const events = ["pointerdown", "keydown", "scroll", "wheel", "touchstart"] as const;
+    const mark = () => { lastInteraction.current = Date.now(); };
     events.forEach((name) => window.addEventListener(name, mark, { passive: true }));
-    const timer = window.setInterval(() => {
-      const studying = STUDY_ROUTES.some((route) => pathRef.current.startsWith(route));
-      const active = document.visibilityState === "visible" && Date.now() - lastInteraction.current < 120_000;
-      if (studying && active) addStudyMinutes(0.5);
-    }, 30_000);
-    return () => {
-      events.forEach((name) => window.removeEventListener(name, mark));
-      window.clearInterval(timer);
+
+    const isStudyRoute = (path: string) => STUDY_ROUTES.some((route) => path.startsWith(route));
+    const recordElapsed = (force = false) => {
+      const now = Date.now();
+      const previous = lastCheckpoint.current;
+      lastCheckpoint.current = now;
+      const visible = force || document.visibilityState === "visible";
+      const recentlyActive = now - lastInteraction.current < 120_000;
+      if (!visible || !recentlyActive || !isStudyRoute(pathRef.current)) return;
+      // Cap a delayed browser timer so sleeping/suspended tabs are never
+      // mistaken for active study time. Frequent checkpoints limit lost time.
+      const activeFrom = Math.max(previous, lastInteraction.current);
+      const elapsedMs = Math.min(15_000, Math.max(0, now - activeFrom));
+      if (elapsedMs >= 1_000) addStudyMinutes(elapsedMs / 60_000);
     };
-  }, []);
+
+    const flush = () => {
+      recordElapsed(true);
+      const userId = accountRef.current;
+      if (mode === "cloud" && userId) {
+        void flushCloudSync(userId).catch((error) =>
+          console.warn("Could not save the latest study-time checkpoint:", error),
+        );
+      }
+    };
+
+    const timer = window.setInterval(() => recordElapsed(), 10_000);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+      else lastCheckpoint.current = Date.now();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      flush();
+      window.clearInterval(timer);
+      events.forEach((name) => window.removeEventListener(name, mark));
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", flush);
+    };
+  }, [mode]);
+
   return null;
 }
 
