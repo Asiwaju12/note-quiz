@@ -74,6 +74,14 @@ export function PracticePanel({
       // If the source has no unseen questions left, begin a fresh shuffled review cycle.
       if (!questions.length) questions = await generateQuestions(doc, { count, difficulty, types, topics: topic ? [topic] : undefined, pages: topicPages?.length ? topicPages : undefined }, source, signal);
       questions = shuffle(questions);
+      const latestAttempt = attempts
+        .filter((attempt) => attempt.docId === doc.id && attempt.answers.length > 0)
+        .sort((a, b) => b.finishedAt.localeCompare(a.finishedAt))[0];
+      const previousFirstPrompt = latestAttempt?.answers[0]?.prompt;
+      // Avoid presenting the previous session's opening question as No. 1 again.
+      if (questions.length > 1 && previousFirstPrompt && normalise(questions[0].prompt) === normalise(previousFirstPrompt)) {
+        questions.push(questions.shift()!);
+      }
       const known = new Set(target.questions.map((q) => normalise(q.prompt)));
       const fresh = questions.filter((q) => !known.has(normalise(q.prompt)));
       if (fresh.length) updateDeck(target.id, { questions: [...target.questions, ...fresh], source });
