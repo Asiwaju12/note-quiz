@@ -2,6 +2,9 @@
 -- Supabase Auth remains responsible for generating and sending the confirmation email.
 -- It uses the existing Auth SMTP configuration (Gmail SMTP); no separate email provider is introduced.
 
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+
 create table if not exists public.verification_email_reminders (
   user_id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
