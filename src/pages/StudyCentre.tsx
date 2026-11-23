@@ -97,7 +97,7 @@ function UploadDialog({ open, onClose, folders, defaultFolder }: { open: boolean
         </span>
         {files.length ? (
           <span className="mt-3 text-sm font-medium">
-            {files.length === 1 ? files[0].name : `${files.length} PDFs selected`}
+            {files.length === 1 ? files[0].name : `${files.length} files selected`}
             <span className="mt-0.5 block text-xs font-normal text-subtle">{formatBytes(files.reduce((sum, f) => sum + f.size, 0))} · tap to change</span>
           </span>
         ) : (
