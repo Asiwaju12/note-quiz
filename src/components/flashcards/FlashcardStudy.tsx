@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion, useMotionValue, useTransform, type PanInfo } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { CheckCircle2, RotateCcw, Shuffle } from "lucide-react";
 import type { Flashcard } from "@/data/models";
 import { reviewCard } from "@/data/repos";
@@ -45,7 +45,6 @@ export function FlashcardStudy({
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [results, setResults] = useState<Array<{ id: string; rating: RatingValue }>>([]);
-  const [direction, setDirection] = useState(1);
   const card = queue[index];
   const done = index >= queue.length;
 
@@ -56,7 +55,6 @@ export function FlashcardStudy({
       if (!card) return;
       reviewCard(card.id, rating);
       setResults((current) => [...current, { id: card.id, rating }]);
-      setDirection(rating >= 3 ? 1 : -1);
       setFlipped(false);
       // In SRS mode a failed card comes back later in the same session.
       if (mode === "srs" && rating === 1) setQueue((current) => [...current, card]);
@@ -79,17 +77,6 @@ export function FlashcardStudy({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [flipped, mode, rate, done]);
-
-  // Swipe gestures (mobile): right = got it, left = still learning.
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-220, 220], [-10, 10]);
-  const rightHint = useTransform(x, [20, 120], [0, 1]);
-  const leftHint = useTransform(x, [-120, -20], [1, 0]);
-  const onDragEnd = (_: unknown, info: PanInfo) => {
-    if (!flipped) return;
-    if (info.offset.x > 110 || info.velocity.x > 600) rate(3);
-    else if (info.offset.x < -110 || info.velocity.x < -600) rate(1);
-  };
 
   if (!initialCards.length) return null;
 
@@ -155,20 +142,14 @@ export function FlashcardStudy({
       <ProgressBar value={index / total} className="mb-6" label="Session progress" />
 
       <div className="perspective relative h-[min(52vh,360px)] select-none">
-        <AnimatePresence mode="popLayout" custom={direction}>
+        <AnimatePresence mode="wait">
           <motion.div
             key={`${card.id}-${index}`}
-            custom={direction}
             className="absolute inset-0"
-            style={{ x, rotate }}
-            drag={flipped ? "x" : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.9}
-            onDragEnd={onDragEnd}
-            initial={{ opacity: 0, y: 24, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: direction * 260, rotate: direction * 8, transition: { duration: 0.28 } }}
-            transition={{ type: "spring", damping: 26, stiffness: 300 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16, ease: "easeOut" }}
           >
             <motion.button
               type="button"
@@ -198,15 +179,9 @@ export function FlashcardStudy({
                 <div className="flex flex-1 items-center justify-center overflow-y-auto py-4">
                   <p className="text-center text-lg leading-relaxed sm:text-xl">{card.back}</p>
                 </div>
-                <p className="text-center text-xs text-subtle">Swipe right if you knew it, left if not</p>
+                <p className="text-center text-xs text-subtle">Choose how well you remembered using the buttons below.</p>
               </div>
             </motion.button>
-            <motion.span style={{ opacity: rightHint }} className="pointer-events-none absolute left-5 top-5 rounded-lg border-2 border-success px-2 py-1 text-sm font-bold text-success">
-              GOT IT
-            </motion.span>
-            <motion.span style={{ opacity: leftHint }} className="pointer-events-none absolute right-5 top-5 rounded-lg border-2 border-danger px-2 py-1 text-sm font-bold text-danger">
-              AGAIN
-            </motion.span>
           </motion.div>
         </AnimatePresence>
       </div>
