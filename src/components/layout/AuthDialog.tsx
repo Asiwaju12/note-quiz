@@ -154,6 +154,16 @@ export function AuthDialog() {
         <Button type="submit" size="lg" loading={busy}>
           {mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"}
         </Button>
+        {mode !== "reset" && (pendingVerification || mode === "signin") && (
+          <button
+            type="button"
+            onClick={resendVerification}
+            disabled={busy || !form.email.trim()}
+            className="text-center text-[13px] font-medium text-accent hover:text-text disabled:opacity-50"
+          >
+            Resend verification email
+          </button>
+        )}
         <button type="button" onClick={() => setMode(mode === "reset" ? "signin" : "reset")} className="text-center text-[13px] text-muted hover:text-text">
           {mode === "reset" ? "Back to sign in" : "Forgot your password?"}
         </button>
