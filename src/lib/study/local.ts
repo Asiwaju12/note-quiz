@@ -63,9 +63,8 @@ function detectDefinitions(sentences: Sentence[], pages: string[]): Definition[]
   // "X is/are/refers to/means … " sentences.
   for (const sentence of sentences) {
     const match = sentence.text.match(
-      /^([A-Z][A-Za-z0-9’'()\- ]{1,58}?)\s+(?:is|are|refers to|is defined as|are defined as|means|is known as|describes|is called)\s+(?:a|an|the)?\s*(.{12,380})$/,
-    );
-    if (match) add(match[1], `${match[2].replace(/[.;]$/, "")}.`, sentence.page);
+      /^([A-Z][A-Za-z0-9’'()\- ]{1,58}?)\s+(?:can be defined as|is defined as|are defined as|is known as|are known as|refers to|is called|are called|consists of|consist of|is made up of|are made up of|includes|include|means|describes|is|are)\s+(?:a|an|the)?\s*(.{12,380})$/,
+    );    if (match) add(match[1], `${match[2].replace(/[.;]$/, "")}.`, sentence.page);
   }
   return [...found.values()];
 }
@@ -437,6 +436,50 @@ export function localQuestions(
     return distractors(answer, pool);
   };
 
+  // Balance True/False items: true statements are source-backed, while
+  // false ones are created only by swapping clearly distinct definitions.
+  const trueStatements = [
+    ...facts.map((fact) => ({
+      statement: fact.sentence.text,
+      explanation: "This statement is taken from the uploaded document.",
+      page: fact.sentence.page,
+      isTrue: true,
+    })),
+    ...defs.map((def) => ({
+      statement: `${def.term} is defined as ${def.definition}`,
+      explanation: `The document defines ${def.term} as ${def.definition}`,
+      page: def.page,
+      isTrue: true,
+    })),
+  ];
+  const falseStatements: Array<{ statement: string; explanation: string; page: number; isTrue: boolean }> = [];
+  for (const left of defs) {
+    const right = defs.find((candidate) => {
+      if (candidate.term.toLowerCase() === left.term.toLowerCase()) return false;
+      const leftTerm = new Set(tokenize(left.term));
+      const rightTerm = new Set(tokenize(candidate.term));
+      const termOverlap = [...leftTerm].filter((token) => rightTerm.has(token)).length /
+        Math.max(1, new Set([...leftTerm, ...rightTerm]).size);
+      const leftMeaning = new Set(tokenize(left.definition));
+      const rightMeaning = new Set(tokenize(candidate.definition));
+      const meaningOverlap = [...leftMeaning].filter((token) => rightMeaning.has(token)).length /
+        Math.max(1, new Set([...leftMeaning, ...rightMeaning]).size);
+      return termOverlap < 0.25 && meaningOverlap < 0.35 &&
+        !candidate.definition.toLowerCase().includes(left.term.toLowerCase()) &&
+        !left.definition.toLowerCase().includes(candidate.term.toLowerCase());
+    });
+    if (right) falseStatements.push({
+      statement: `${left.term} is defined as ${right.definition}`,
+      explanation: `False. ${left.term} is defined as ${left.definition}`,
+      page: left.page,
+      isTrue: false,
+    });
+  }
+  const shuffledTrueStatements = shuffled(trueStatements);
+  const shuffledFalseStatements = shuffled(falseStatements);
+  let trueTfIndex = 0;
+  let falseTfIndex = 0;
+
   const out: GeneratedQuestion[] = [];
   const seen = new Set<string>();
   let defIndex = 0;
@@ -486,19 +529,24 @@ export function localQuestions(
         };
       }
     } else if (type === "tf") {
-      // Basic mode cannot reliably verify an invented false claim. Use only
-      // complete source-backed statements; never flip truth by inserting
-      // "not", which can create double negatives or change the meaning.
-      while (factIndex < facts.length && !question) {
-        const fact = facts[factIndex++];
-        const statement = fact.sentence.text.trim();
-        if (!statement || /[?？]/.test(statement) || wordCount(statement) < 7) continue;
-        question = {
-          type, prompt: "True or false: " + statement, options: ["True", "False"],
-          answerIndex: 0, answerText: "True",
-          explanation: "True. This complete statement is taken from the uploaded document: “" + statement + "”",
-          topic: sectionOf(analysis, fact.sentence.page), difficulty: difficultyOf(statement), page: fact.sentence.page,
-        };
+      const falseDue = falseTfIndex < shuffledFalseStatements.length &&
+        (falseTfIndex <= trueTfIndex || trueTfIndex >= shuffledTrueStatements.length);
+      const candidate = falseDue
+        ? shuffledFalseStatements[falseTfIndex++]
+        : shuffledTrueStatements[trueTfIndex++];
+      const item = candidate ?? (falseTfIndex < shuffledFalseStatements.length
+        ? shuffledFalseStatements[falseTfIndex++]
+        : shuffledTrueStatements[trueTfIndex++]);
+      if (item) {
+        const statement = item.statement.trim();
+        if (statement && !/[?？]/.test(statement) && wordCount(statement) >= 7) {
+          question = {
+            type, prompt: "True or false: " + statement, options: ["True", "False"],
+            answerIndex: item.isTrue ? 0 : 1, answerText: item.isTrue ? "True" : "False",
+            explanation: (item.isTrue ? "True. " : "False. ") + item.explanation,
+            topic: sectionOf(analysis, item.page), difficulty: difficultyOf(statement), page: item.page,
+          };
+        }
       }
     } else if (type === "fill") {
       const fact = facts[factIndex++];
