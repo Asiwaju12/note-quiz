@@ -5,6 +5,7 @@ import { Copy, MessageCircle, Plus, Users, Zap } from "lucide-react";
 import { useAccount } from "@/app/account";
 import { useCollection } from "@/data/db";
 import type { SavedDeck } from "@/data/models";
+import { isChoiceQuestion } from "@/lib/game/types";
 import { supabaseAuth } from "@/services/supabase";
 import { Button } from "@/components/ui/Button";
 import { Card, EmptyState, PageHeader } from "@/components/ui/primitives";
@@ -88,11 +89,13 @@ export default function Multiplayer() {
     if (!account) { openAuth("signin"); return; }
     const deck = playable.find(d => d.id === selectedDeck);
     if (!deck) { setError("Choose a saved deck first."); return; }
-    if (deck.questions.length > 60) { setError("Multiplayer rooms support up to 60 questions. Choose a shorter deck."); return; }
+    const questions = deck.questions.filter(isChoiceQuestion);
+    if (questions.length === 0) { setError("This deck has no multiple-choice or true/false questions for live competition."); return; }
+    if (questions.length > 60) { setError("Multiplayer rooms support up to 60 playable questions. Choose a shorter deck."); return; }
     setLoading(true); setError("");
     try {
       const id = await rpc<string>("create_study_room", { p_room_code: roomCode(), p_deck_title: deck.title, p_display_name: account.name, p_question_duration: 20 });
-      await rpc("start_study_room", { p_room_id: id, p_questions: deck.questions });
+      await rpc("start_study_room", { p_room_id: id, p_questions: questions });
       navigate(`/multiplayer/${id}`);
     } catch (e) { setError(e instanceof Error ? e.message : "Room could not be created."); }
     finally { setLoading(false); }
