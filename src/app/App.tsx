@@ -28,6 +28,7 @@ const Planner = lazy(() => import("@/pages/Planner"));
 const Progress = lazy(() => import("@/pages/Progress"));
 const Leaderboard = lazy(() => import("@/pages/Leaderboard"));
 const Profile = lazy(() => import("@/pages/Profile"));
+const Multiplayer = lazy(() => import("@/pages/Multiplayer"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function PageFallback() {
@@ -88,6 +89,8 @@ function Routed() {
         <Route path="/planner" element={<Shell><Planner /></Shell>} />
         <Route path="/progress" element={<Shell><Progress /></Shell>} />
         <Route path="/leaderboard" element={<Shell><Leaderboard /></Shell>} />
+        <Route path="/multiplayer" element={<Shell><Multiplayer /></Shell>} />
+        <Route path="/multiplayer/:roomId" element={<Shell><Multiplayer /></Shell>} />
         <Route path="/profile" element={<Shell><Profile /></Shell>} />
         <Route path="*" element={<Shell><NotFound /></Shell>} />
       </Routes>
