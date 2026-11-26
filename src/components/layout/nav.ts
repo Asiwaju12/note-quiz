@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, BookOpen, CalendarDays, GraduationCap, Home, Layers, LibraryBig, Sparkles, Target, Trophy, UserRound } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, GraduationCap, Home, Layers, LibraryBig, Sparkles, Target, Trophy, UserRound, Users } from "lucide-react";
 
 export type NavItem = { to: string; label: string; icon: LucideIcon; match?: string[] };
 
@@ -19,6 +19,7 @@ export const SECONDARY_NAV: NavItem[] = [
   { to: "/planner", label: "Study planner", icon: CalendarDays },
   { to: "/progress", label: "Progress", icon: BarChart3 },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { to: "/multiplayer", label: "Multiplayer", icon: Users },
 ];
 
 export const PROFILE_NAV: NavItem = { to: "/profile", label: "Profile & settings", icon: UserRound };
