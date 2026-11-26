@@ -37,7 +37,8 @@ function roomCode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 export default function Multiplayer() {
-  const { roomId } = useParams();\n  const [searchParams] = useSearchParams();
+  const { roomId } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { account, openAuth } = useAccount();
   const decks = useCollection<SavedDeck>("decks");
@@ -48,10 +49,13 @@ export default function Multiplayer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [chosen, setChosen] = useState<number | null>(null);
-  const [result, setResult] = useState<{correct:boolean;points:number;answer:unknown;explanation:string}|null>(null);\n  const [clock, setClock] = useState(Date.now());\n  useEffect(() => { const timer = window.setInterval(() => setClock(Date.now()), 400); return () => window.clearInterval(timer); }, []);
+  const [result, setResult] = useState<{correct:boolean;points:number;answer:unknown;explanation:string}|null>(null);
+  const [clock, setClock] = useState(Date.now());
+  useEffect(() => { const timer = window.setInterval(() => setClock(Date.now()), 400); return () => window.clearInterval(timer); }, []);
   const isHost = Boolean(account && room && account.id === room.host_id);
   const myScore = room?.standings.find(s => s.user_id === account?.id)?.score ?? 0;
-  const meAnswered = Boolean(result);\n  const remaining = room?.question_started_at ? Math.max(0, room.question_duration_seconds - Math.floor((clock - new Date(room.question_started_at).getTime()) / 1000)) : room?.question_duration_seconds ?? 0;
+  const meAnswered = Boolean(result);
+  const remaining = room?.question_started_at ? Math.max(0, room.question_duration_seconds - Math.floor((clock - new Date(room.question_started_at).getTime()) / 1000)) : room?.question_duration_seconds ?? 0;
 
   const refresh = async (id = roomId) => {
     if (!id) return;
