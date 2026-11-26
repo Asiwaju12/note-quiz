@@ -13,6 +13,7 @@ import { Avatar } from "./Avatar";
 import { Logo, LogoMark } from "./Logo";
 import { PRIMARY_NAV, PROFILE_NAV, SECONDARY_NAV, isActivePath, type NavItem } from "./nav";
 import { Drawer } from "@/components/ui/Overlay";
+import { Onboarding } from "./Onboarding";
 
 function SideLink({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const { pathname } = useLocation();
