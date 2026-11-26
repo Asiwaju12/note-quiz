@@ -80,10 +80,13 @@ export function todayStat(): DailyStat {
 export function bumpToday(changes: Partial<Omit<DailyStat, "id" | "updatedAt">>): void {
   const current = todayStat();
   const next = { ...current, updatedAt: nowIso() };
-  for (const [key, value] of Object.entries(changes) as Array<[keyof Omit<DailyStat, "id">, number]>) {
+  const numericChanges: Record<string, number> = {};
+  for (const [key, value] of Object.entries(changes)) {
+    if (typeof value !== "number") continue;
     // Keep sub-minute checkpoints precise (the timer records every 10 seconds).
-    next[key] = Math.round(((current[key] ?? 0) + value) * 10_000) / 10_000;
+    numericChanges[key] = Math.round((((current as unknown as Record<string, number>)[key] ?? 0) + value) * 10_000) / 10_000;
   }
+  Object.assign(next, numericChanges);
   db.dailyStats.put(next);
 }
 
