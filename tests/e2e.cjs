@@ -98,7 +98,7 @@ async function step(name, fn) {
   }
 
   await step("PDF viewer renders + search + bookmark", async () => {
-    await page.getByRole("tab", { name: "PDF" }).click();
+    await page.getByRole("tab", { name: "File" }).click();
     await page.waitForFunction(() => document.querySelectorAll(".pdf-text-layer span").length > 3, null, { timeout: 20000 });
     await page.getByRole("button", { name: "Next page" }).click();
     await page.getByLabel("Page number").evaluate((el) => el.value).then((v) => {
@@ -114,15 +114,18 @@ async function step(name, fn) {
   });
 
   await step("highlight via text selection", async () => {
+    await page.waitForFunction(() => [...document.querySelectorAll(".pdf-text-layer span")].some((span) => (span.textContent ?? "").trim().length > 20), null, { timeout: 20000 });
     await page.evaluate(() => {
-      const spans = [...document.querySelectorAll(".pdf-text-layer span")].filter((s) => s.textContent.length > 20);
-      const r = document.createRange();
-      r.selectNodeContents(spans[0]);
-      const sel = getSelection();
-      sel.removeAllRanges();
-      sel.addRange(r);
-      document.dispatchEvent(new Event("selectionchange"));
+      const span = [...document.querySelectorAll(".pdf-text-layer span")].find((node) => (node.textContent ?? "").trim().length > 20);
+      if (!span) throw new Error("PDF text layer has no selectable text");
+      const range = document.createRange();
+      range.selectNodeContents(span);
+      const selection = window.getSelection();
+      if (!selection) throw new Error("Browser text selection is unavailable");
+      selection.removeAllRanges();
+      selection.addRange(range);
     });
+    await page.waitForFunction(() => Boolean(window.getSelection()?.toString().trim()), null, { timeout: 5000 });
     await page.getByRole("button", { name: "Highlight", exact: true }).click();
     await page.getByText("Highlight saved").waitFor();
   });
