@@ -255,6 +255,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <BottomNav onMore={() => setMoreOpen(true)} />
       <MoreSheet open={moreOpen} onClose={() => setMoreOpen(false)} />
+      <Onboarding />
     </div>
   );
 }
