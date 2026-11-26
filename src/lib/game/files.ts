@@ -105,7 +105,7 @@ type MammothGlobal = {
 };
 
 function webWindow(): Window & { Tesseract?: TesseractGlobal; mammoth?: MammothGlobal } {
-  return window as Window & { Tesseract?: TesseractGlobal; mammoth?: MammothGlobal };
+  return window as unknown as Window & { Tesseract?: TesseractGlobal; mammoth?: MammothGlobal };
 }
 
 async function extractDocx(file: File): Promise<string> {
