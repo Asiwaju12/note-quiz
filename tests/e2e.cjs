@@ -40,9 +40,14 @@ async function step(name, fn) {
 
   await step("onboarding + dashboard", async () => {
     await page.goto(BASE + "/");
-    await page.getByPlaceholder("Your first name").fill("Fernanda");
-    await page.getByRole("button", { name: "Get started" }).click();
-    await page.getByRole("heading", { name: /Fernanda/ }).waitFor();
+    const welcome = page.getByRole("dialog");
+    await welcome.locator('input[placeholder="Your first name"]').first().fill("Fernanda");
+    await welcome.getByRole("button", { name: /Take the quick tour/ }).click();
+    for (let i = 0; i < 3; i++) {
+      await welcome.getByRole("button", { name: /^Next/ }).click();
+    }
+    await welcome.getByRole("button", { name: /^Finish/ }).click();
+    await welcome.waitFor({ state: "hidden" });
     await shot("01-dashboard-empty");
     await overflow(page, "dashboard");
   });
