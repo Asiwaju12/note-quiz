@@ -53,6 +53,8 @@ export type GenerateRequest = {
     difficulty?: "easy" | "medium" | "hard" | "mixed";
     types?: QuestionTypeOption[];
     topics?: string[];
+    /** Previously used prompts, so generated quizzes can avoid repeats. */
+    excludePrompts?: string[];
     /** For task "plan". */
     plan?: {
       goal: string;
