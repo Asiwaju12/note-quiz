@@ -103,7 +103,10 @@ export default function DeckDetail() {
         <button type="button" onClick={() => setParams({ tab: "cards" })} className="card card-interactive flex flex-col gap-2 p-4 text-left">
           <Layers className="h-5 w-5 text-accent-text" />
           <span className="text-sm font-semibold">Flashcards</span>
-        </button>
+        </button>        <Link to={`/multiplayer?deck=${deck.id}`} className={cn("card card-interactive flex flex-col gap-2 p-4", !deck.questions.length && "pointer-events-none opacity-50")}>
+          <Users className="h-5 w-5 text-accent-text" />
+          <span className="text-sm font-semibold">Study together</span>
+        </Link>
       </div>
 
       {history.length > 0 && (
