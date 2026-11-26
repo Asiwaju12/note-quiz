@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { Copy, MessageCircle, Plus, Users, Zap } from "lucide-react";
 import { useAccount } from "@/app/account";
@@ -37,12 +37,12 @@ function roomCode() {
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 export default function Multiplayer() {
-  const { roomId } = useParams();
+  const { roomId } = useParams();\n  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { account, openAuth } = useAccount();
   const decks = useCollection<SavedDeck>("decks");
   const playable = useMemo(() => decks.filter(d => d.questions.length > 0), [decks]);
-  const [selectedDeck, setSelectedDeck] = useState("");
+  const [selectedDeck, setSelectedDeck] = useState(() => searchParams.get("deck") ?? "");
   const [code, setCode] = useState("");
   const [room, setRoom] = useState<RoomState | null>(null);
   const [loading, setLoading] = useState(false);
