@@ -67,7 +67,7 @@ export function Onboarding() {
             <h2 className="text-xl font-semibold tracking-tight">{current.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">{current.description}</p>
           </div>
-          <Button block variant="secondary" onClick={() => navigate(current.route)}>{current.action} <ArrowRight className="ml-2 h-4 w-4"/></Button>
+          <Button className="w-full" variant="secondary" onClick={() => navigate(current.route)}>{current.action} <ArrowRight className="ml-2 h-4 w-4"/></Button>
           <div className="flex items-center justify-between gap-3">
             <Button variant="ghost" onClick={() => setStep((value) => Math.max(0, value - 1))} disabled={step === 0}><ArrowLeft className="mr-1 h-4 w-4"/> Back</Button>
             <button type="button" onClick={finish} className="text-xs text-muted hover:text-text">Skip tour</button>
