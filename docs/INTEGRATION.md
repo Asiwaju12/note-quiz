@@ -9,7 +9,7 @@ This source package includes the Supabase authentication client and an initial a
 | `VITE_SUPABASE_URL` | browser | Accounts, cloud sync, shared Daily Drop |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | browser | same — publishable/anon key only, **never** the service-role key |
 | `GEMINI_API_KEY` | server only | Google Gemini chat + AI generation |
-| `AI_MODEL` | server, optional | defaults to `gemini-2.5-flash` |
+| `AI_MODEL` | server, optional | defaults to `gemini-3.5-flash-lite` |
 | `AI_CHAT_EFFORT` / `AI_GENERATE_EFFORT` | server, optional | reserved tuning settings; Gemini uses provider generation defaults |
 
 | `AI_REQUIRE_AUTH` | server, optional | `true` = AI routes require a valid Supabase session. **Keep enabled for preview and production** |
@@ -19,12 +19,32 @@ Variables prefixed `VITE_` are embedded in the browser bundle; everything else s
 
 ## 2. AI provider requirements
 
-- Provider: Anthropic Claude API via the official `@anthropic-ai/sdk` (server-side only, `server/ai/provider.ts`).
-- Model: `claude-opus-5-5` by default. Adaptive thinking is on by default for this model; depth is controlled with `output_config.effort`.
-- Chat streams over NDJSON from `/api/ai/chat`; generation uses structured outputs (`output_config.format` with a JSON schema) from `/api/ai/generate`, streamed with keep-alive pings to avoid proxy timeouts.
-- Long generations can take minutes on large PDFs. `vercel.json` sets `maxDuration: 300` for `api/**`; your plan must allow it.
-- Document text sent for whole-document generation is capped at 240,000 characters (`MAX_GENERATE_CHARS`). Longer PDFs are marked "AI read the first part only" in the UI — nothing is silently dropped. A map-reduce pass per study-guide topic is the natural next step for very long textbooks.
-- Cost control: `server/http.ts` has a per-instance rate limiter (best-effort on serverless). Use a shared store (e.g. a Supabase table or Redis) for real per-user quotas.
+Recall AI is a server-side feature. The active provider code is `server/ai/provider.ts`; request handlers are `api/ai/status.ts`, `api/ai/chat.ts`, and `api/ai/generate.ts`.
+
+### Active provider: Google Gemini
+
+- Set `GEMINI_API_KEY` as a Vercel server environment variable. Never expose it through a `VITE_*` variable or commit it.
+- The current default model in source is `gemini-3.5-flash-lite`. Override it with `AI_MODEL` only if the chosen model is enabled for the connected Google AI project.
+- Chat streams tutor responses over NDJSON from `/api/ai/chat`.
+- Structured generation uses `/api/ai/generate` for summaries, notes, key terms, guides, flashcards, questions and study plans.
+- `/api/ai/status` reports whether a Gemini key is configured and which model is selected. It never returns the key.
+- A configured API key does not guarantee model access or available quota; Google AI project limits and billing still apply.
+
+### Claude and Basic Mode
+
+The repository includes an Anthropic SDK dependency and some legacy Claude configuration fields, but the active chat and generation handlers call Gemini only. Claude is **not** currently an automatic fallback. An `ANTHROPIC_API_KEY` by itself does not enable Recall AI.
+
+Basic Mode is a separate local extraction-based path. It does not call an AI provider and should remain available if Gemini is unconfigured, rate-limited or unavailable. Do not label Basic Mode output as AI-generated.
+
+### AI troubleshooting
+
+1. Open `/api/ai/status` on the deployed site.
+2. Confirm `GEMINI_API_KEY` exists in the correct Vercel environment (Preview or Production).
+3. Confirm the Google AI project allows the configured `AI_MODEL` and has available quota/billing capacity.
+4. Inspect Vercel function logs for `/api/ai/chat` or `/api/ai/generate`.
+5. If AI is unavailable, continue using Basic Mode while the provider configuration is repaired.
+
+The AI endpoints validate requests and use per-instance rate limiting. Per-instance limits are best-effort on serverless; use a shared store for robust account-level quotas.
 
 ## 3. RAG (document-aware answers)
 
