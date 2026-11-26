@@ -11,7 +11,7 @@ function validate(body:GenerateRequest):GenerateRequest{
 }
 /** Gemini-only generation endpoint. Basic Mode remains available in the client when AI is unavailable. */
 export async function POST(request:Request):Promise<Response>{
- if(!isAiConfigured())return errorResponse(503,"Recall AI isn't connected yet. Add GEMINI_API_KEY or ANTHROPIC_API_KEY to the server environment.","not_configured");
+ if(!isAiConfigured())return errorResponse(503,"Recall AI isn't connected yet. Add GEMINI_API_KEY to the server environment.","not_configured");
  let body:GenerateRequest;
  try{const {userId}=await authorize(request);rateLimit(clientKey(request,userId),12);body=validate(await readJson<GenerateRequest>(request,1_200_000));}
  catch(error){if(error instanceof HttpError)return errorResponse(error.status,error.message);return errorResponse(400,"Invalid request.");}
