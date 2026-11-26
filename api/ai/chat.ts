@@ -15,7 +15,7 @@ function validate(body:ChatRequest):ChatRequest{
 }
 /** Gemini primary; Claude automatically takes over if Gemini fails before sending output. */
 export async function POST(request:Request):Promise<Response>{
- if(!isAiConfigured())return errorResponse(503,"Recall AI isn't connected yet. Add GEMINI_API_KEY or ANTHROPIC_API_KEY to the server environment.","not_configured");
+ if(!isAiConfigured())return errorResponse(503,"Recall AI isn't connected yet. Add GEMINI_API_KEY to the server environment.","not_configured");
  let body:ChatRequest;
  try{const {userId}=await authorize(request);rateLimit(clientKey(request,userId),30);body=validate(await readJson<ChatRequest>(request));}
  catch(error){if(error instanceof HttpError)return errorResponse(error.status,error.message);return errorResponse(400,"Invalid request.");}
