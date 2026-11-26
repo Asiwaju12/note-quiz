@@ -77,7 +77,22 @@ The original Supabase code remains active for auth, classic/Daily Drop scores, a
 
 Guests and signed-out users keep study data in this browser's IndexedDB; preferences and "continue studying" state remain in localStorage. Signed-in users additionally sync the new study workspace to the per-user Supabase snapshot after the additive migration is applied. PDF binaries use private Supabase Storage; extracted text uses the dedicated page-text table. AI content only appears when a real provider responds. AI responses are never mocked in the deployed app; integration tests should stub the Gemini REST boundary when testing provider behavior.
 
-## 6. Remaining backend work
+## 6. Friends, direct messages and live multiplayer (integration branch)
+
+The `recall-quiz-redesign-integration` branch adds the social and multiplayer interface. Its database migrations are applied to the connected Supabase project.
+
+- `friend_requests` and `direct_messages` store friend relationships and private messages with row-level access rules.
+- `study_rooms`, `study_room_members`, `study_room_questions`, and `study_room_answers` store live match state and results.
+- Room creation, joining by room code, question start, answer scoring, state retrieval and host progression use authenticated Postgres RPC functions.
+- Correct-answer scoring is calculated server-side; clients cannot directly set room scores or question state.
+- Private Realtime topics are authorized against room membership or accepted friendship.
+- Live competition gives all room members the same active question and shared round timer. Players submit independently; the host advances after the round timer ends.
+
+Current client routes: `/messages`, `/multiplayer`, and `/multiplayer/:roomId`. Saved deck pages include a Study Together entry point. Live rooms currently accept multiple-choice and true/false choice questions only, with a maximum of 60 questions per match.
+
+**Release gate:** This feature is not considered production-ready until a successful Vercel preview is available and two or more separate signed-in accounts have passed friend request, messaging, room join, synchronized question, scoring, reconnect and final-results tests.
+
+## 7. Remaining backend work
 
 - Verify cloud sync end-to-end with two test accounts and two browsers, including deletes, interrupted uploads, and simultaneous edits
 - Add progress UI/retry controls for large PDF uploads and text sync
@@ -91,3 +106,12 @@ Guests and signed-out users keep study data in this browser's IndexedDB; prefere
 - A browser records the account that owns its current local workspace. Signing into a different account will hydrate that account's cloud records instead of merging the previous account's cached study records into it.
 - First sign-in on a browser can migrate its guest workspace into the account snapshot.
 - Current snapshot merge is ID/timestamp based and additive. Full delete tombstones, conflict resolution for concurrent edits, and account-switch acceptance testing are still required before production-grade cross-device sync can be claimed.
+
+
+## 10. Deployment status and safe release process
+
+- Vercel project: `recall-quiz`; framework: Vite; build command: `npm run build`; output directory: `dist`; Node.js runtime: `22.x`.
+- The integration branch is a development/preview branch. Do not promote it to the production domain until preview build and functional tests pass.
+- The most recent Vercel attempts returned `BUILD_FAILED: Resource provisioning failed` before any build events were emitted. This is a Vercel provisioning failure, not yet evidence of a TypeScript or application build error.
+- When the Vercel platform begins emitting build logs, inspect install/build output before changing dependencies or application code to address an assumed error.
+- Never delete or replace the existing production deployment as a troubleshooting step.
