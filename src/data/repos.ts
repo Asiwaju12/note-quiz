@@ -128,7 +128,7 @@ export function deleteFolder(id: string): void {
 
 /* ───────────────────────── Documents ───────────────────────── */
 
-export function createDocument(input: Pick<StudyDocument, "title" | "fileName" | "sizeBytes" | "folderId">): StudyDocument {
+export function createDocument(input: Pick<StudyDocument, "title" | "fileName" | "sizeBytes" | "folderId"> & Partial<Pick<StudyDocument, "mimeType">>): StudyDocument {
   const now = nowIso();
   return db.documents.put({
     id: newId("doc"),
