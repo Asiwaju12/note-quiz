@@ -1,0 +1,53 @@
+import { useEffect, useMemo, useState } from "react";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { MessageCircle, Search, Send, UserPlus, Users } from "lucide-react";
+import { useAccount } from "@/app/account";
+import { supabaseAuth, supabaseRest } from "@/services/supabase";
+import { Button } from "@/components/ui/Button";
+import { Card, EmptyState, PageHeader } from "@/components/ui/primitives";
+import { toast } from "@/components/ui/Toast";
+
+type Profile = { id:string; display_name:string; handle:string; avatar_color:string };
+type RequestRow = { id:string; sender_id:string; receiver_id:string; status:string; created_at:string };
+type MessageRow = { id:string; sender_id:string; receiver_id:string; body:string; created_at:string; read_at:string|null };
+let clientRef: SupabaseClient | null = null;
+async function getClient() {
+ const session=await supabaseAuth.getSession(); if(!session) throw new Error("Please sign in.");
+ if(!clientRef) clientRef=createClient(import.meta.env.VITE_SUPABASE_URL as string,import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,{auth:{persistSession:false,autoRefreshToken:false}});
+ await clientRef.auth.setSession({access_token:session.access_token,refresh_token:session.refresh_token}); return clientRef;
+}
+export default function Messages() {
+ const {account,openAuth}=useAccount();
+ const [search,setSearch]=useState(""); const [results,setResults]=useState<Profile[]>([]);
+ const [requests,setRequests]=useState<RequestRow[]>([]); const [friends,setFriends]=useState<Profile[]>([]);
+ const [selected,setSelected]=useState<Profile|null>(null); const [messages,setMessages]=useState<MessageRow[]>([]);
+ const [draft,setDraft]=useState(""); const [busy,setBusy]=useState(false); const [error,setError]=useState("");
+ const refreshLists=async()=>{
+  if(!account)return;
+  const [req,friendRows]=await Promise.all([
+   supabaseRest<RequestRow[]>("friend_requests","select=id,sender_id,receiver_id,status,created_at&or=(sender_id.eq."+account.id+",receiver_id.eq."+account.id+")&order=created_at.desc"),
+   supabaseRest<RequestRow[]>("friend_requests","select=id,sender_id,receiver_id,status,created_at&status=eq.accepted&or=(sender_id.eq."+account.id+",receiver_id.eq."+account.id+")")
+  ]);
+  setRequests(req);
+  const ids=[...new Set(friendRows.map(r=>r.sender_id===account.id?r.receiver_id:r.sender_id))];
+  if(ids.length){const profiles=await supabaseRest<Profile[]>("profiles","select=id,display_name,handle,avatar_color&id=in.("+ids.join(",")+")");setFriends(profiles);}else setFriends([]);
+ };
+ useEffect(()=>{if(!account)return;void refreshLists().catch(e=>setError(e.message));},[account?.id]);
+ useEffect(()=>{const q=search.trim();if(!account||q.length<2){setResults([]);return;}let active=true;const timer=window.setTimeout(()=>void supabaseRest<Profile[]>("profiles","select=id,display_name,handle,avatar_color&or=(display_name.ilike.*"+encodeURIComponent(q)+"*,handle.ilike.*"+encodeURIComponent(q.toUpperCase())+"*)&id=neq."+account.id+"&limit=12").then(rows=>active&&setResults(rows)).catch(e=>active&&setError(e.message)),250);return()=>{active=false;window.clearTimeout(timer);};},[search,account?.id]);
+ useEffect(()=>{if(!account||!selected){setMessages([]);return;}let active=true;let channel:ReturnType<SupabaseClient["channel"]>|null=null;
+ const load=()=>supabaseRest<MessageRow[]>("direct_messages","select=id,sender_id,receiver_id,body,created_at,read_at&or=(and(sender_id.eq."+account.id+",receiver_id.eq."+selected.id+"),and(sender_id.eq."+selected.id+",receiver_id.eq."+account.id+"))&order=created_at.asc&limit=150").then(rows=>active&&setMessages(rows));
+ void load().then(async()=>{const supabase=await getClient();const topic="dm:"+[account.id,selected.id].sort().join(":");channel=supabase.channel(topic,{config:{private:true,broadcast:{self:false}}});channel.on("postgres_changes",{event:"INSERT",schema:"public",table:"direct_messages"},()=>{if(active)void load();});channel.subscribe();}).catch(e=>active&&setError(e.message));
+ return()=>{active=false;if(channel&&clientRef)void clientRef.removeChannel(channel);};
+ },[account?.id,selected?.id]);
+ const addFriend=async(profile:Profile)=>{setBusy(true);setError("");try{await supabaseRest("friend_requests","",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({sender_id:account!.id,receiver_id:profile.id,status:"pending"})});toast("Friend request sent");setSearch("");setResults([]);await refreshLists();}catch(e){setError(e instanceof Error?e.message:"Could not send request.");}finally{setBusy(false);}};
+ const respond=async(row:RequestRow,status:"accepted"|"declined")=>{try{await supabaseRest("friend_requests","id=eq."+row.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status,updated_at:new Date().toISOString()})});await refreshLists();}catch(e){setError(e instanceof Error?e.message:"Could not update request.");}};
+ const send=async()=>{const body=draft.trim();if(!body||!selected)return;setBusy(true);try{await supabaseRest("direct_messages","",{method:"POST",headers:{Prefer:"return=minimal"},body:JSON.stringify({sender_id:account!.id,receiver_id:selected.id,body})});setDraft("");await supabaseRest("direct_messages","receiver_id=eq."+account!.id+"&sender_id=eq."+selected.id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({read_at:new Date().toISOString()})}).catch(()=>undefined);const rows=await supabaseRest<MessageRow[]>("direct_messages","select=id,sender_id,receiver_id,body,created_at,read_at&or=(and(sender_id.eq."+account!.id+",receiver_id.eq."+selected.id+"),and(sender_id.eq."+selected.id+",receiver_id.eq."+account!.id+"))&order=created_at.asc&limit=150");setMessages(rows);}catch(e){setError(e instanceof Error?e.message:"Message failed to send.");}finally{setBusy(false);}};
+ const incoming=useMemo(()=>requests.filter(r=>r.receiver_id===account?.id&&r.status==="pending"),[requests,account?.id]);
+ if(!account)return <EmptyState icon={<MessageCircle className="h-6 w-6"/>} title="Your study circle" description="Sign in to find friends, send messages and invite them to study." action={<Button onClick={()=>openAuth("signin")}>Sign in</Button>}/>;
+ return <div className="space-y-5"><PageHeader title="Friends & messages" description="Connect with classmates and plan a live study match."/>
+ <Card className="space-y-3 p-4"><div className="flex items-center gap-2 font-semibold"><Search className="h-4 w-4"/> Find students</div><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or handle…" className="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm"/>{results.map(p=><div key={p.id} className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-full text-xs font-bold" style={{background:p.avatar_color}}>{p.handle}</div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{p.display_name}</p><p className="text-xs text-muted">@{p.handle}</p></div><Button size="sm" variant="secondary" disabled={busy} onClick={()=>void addFriend(p)}><UserPlus className="mr-1 h-4 w-4"/> Add</Button></div>)}</Card>
+ {incoming.length>0&&<Card className="space-y-3 p-4"><h2 className="font-semibold">Friend requests</h2>{incoming.map(r=><div key={r.id} className="flex items-center justify-between gap-2 text-sm"><span>Request received</span><div className="flex gap-2"><Button size="sm" onClick={()=>void respond(r,"accepted")}>Accept</Button><Button size="sm" variant="ghost" onClick={()=>void respond(r,"declined")}>Decline</Button></div></div>)}</Card>}
+ <div className="grid gap-4 lg:grid-cols-[minmax(180px,0.8fr)_minmax(0,1.2fr)]"><Card className="space-y-2 p-3"><h2 className="px-1 font-semibold"><Users className="mr-2 inline h-4 w-4"/>Friends</h2>{friends.map(f=><button key={f.id} onClick={()=>setSelected(f)} className={"flex w-full items-center gap-2 rounded-xl p-2 text-left text-sm "+(selected?.id===f.id?"bg-surface-3":"hover:bg-surface-2")}><span className="grid h-8 w-8 place-items-center rounded-full text-[10px] font-bold" style={{background:f.avatar_color}}>{f.handle}</span><span className="min-w-0 flex-1 truncate">{f.display_name}</span></button>)}{friends.length===0&&<p className="px-1 text-xs text-muted">Accepted friends will appear here.</p>}</Card>
+ <Card className="flex min-h-[360px] flex-col p-3">{selected?<><div className="border-b border-border px-2 pb-3"><p className="font-semibold">{selected.display_name}</p><p className="text-xs text-muted">@{selected.handle}</p></div><div className="flex-1 space-y-2 overflow-y-auto py-3">{messages.map(m=><div key={m.id} className={"flex "+(m.sender_id===account.id?"justify-end":"justify-start")}><div className={"max-w-[85%] rounded-2xl px-3 py-2 text-sm "+(m.sender_id===account.id?"bg-accent text-accent-contrast":"bg-surface-2")}><p>{m.body}</p><p className="mt-1 text-[10px] opacity-60">{new Date(m.created_at).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</p></div></div>)}{messages.length===0&&<p className="py-8 text-center text-xs text-muted">Say hello and start a study conversation.</p>}</div><div className="flex gap-2 border-t border-border pt-3"><input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")void send();}} maxLength={2000} placeholder="Write a message…" className="min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm"/><Button onClick={()=>void send()} disabled={busy||!draft.trim()} aria-label="Send message"><Send className="h-4 w-4"/></Button></>:<div className="grid flex-1 place-items-center text-center text-sm text-muted"><div><MessageCircle className="mx-auto mb-2 h-6 w-6"/><p>Select a friend to message.</p></div></div>}</Card></div>
+ <div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={()=>window.location.assign("/multiplayer")}><Users className="mr-2 h-4 w-4"/> Start a study room</Button></div>{error&&<p role="alert" className="text-sm text-danger">{error}</p>}</div>;
+}
