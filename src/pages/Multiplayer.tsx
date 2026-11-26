@@ -48,10 +48,10 @@ export default function Multiplayer() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [chosen, setChosen] = useState<number | null>(null);
-  const [result, setResult] = useState<{correct:boolean;points:number;answer:unknown;explanation:string}|null>(null);
+  const [result, setResult] = useState<{correct:boolean;points:number;answer:unknown;explanation:string}|null>(null);\n  const [clock, setClock] = useState(Date.now());\n  useEffect(() => { const timer = window.setInterval(() => setClock(Date.now()), 400); return () => window.clearInterval(timer); }, []);
   const isHost = Boolean(account && room && account.id === room.host_id);
   const myScore = room?.standings.find(s => s.user_id === account?.id)?.score ?? 0;
-  const meAnswered = Boolean(result);
+  const meAnswered = Boolean(result);\n  const remaining = room?.question_started_at ? Math.max(0, room.question_duration_seconds - Math.floor((clock - new Date(room.question_started_at).getTime()) / 1000)) : room?.question_duration_seconds ?? 0;
 
   const refresh = async (id = roomId) => {
     if (!id) return;
@@ -152,13 +152,13 @@ export default function Multiplayer() {
       </Card>
       {room.status === "playing" && room.question && (
         <Card className="space-y-4 p-5">
-          <div className="flex items-center justify-between text-xs text-muted"><span>Question {room.question_index + 1}</span><span>{room.question_duration_seconds}s round</span></div>
+          <div className="flex items-center justify-between text-xs text-muted"><span>Question {room.question_index + 1}</span><span className={remaining <= 5 ? "font-semibold text-danger" : ""}>{remaining}s left</span></div>
           <h2 className="text-lg font-semibold leading-snug">{room.question.prompt}</h2>
           <div className="grid gap-2 sm:grid-cols-2">
-            {room.question.options.map((option,i) => <Button key={i} variant={chosen===i ? "primary" : "secondary"} disabled={loading || meAnswered} onClick={() => void answer(i)} className="min-h-12 justify-start whitespace-normal text-left">{String.fromCharCode(65+i)}. {option}</Button>)}
+            {room.question.options.map((option,i) => <Button key={i} variant={chosen===i ? "primary" : "secondary"} disabled={loading || meAnswered || remaining <= 0} onClick={() => void answer(i)} className="min-h-12 justify-start whitespace-normal text-left">{String.fromCharCode(65+i)}. {option}</Button>)}
           </div>
           {result && <div className="rounded-xl bg-surface-2 p-3 text-sm"><p className={result.correct ? "text-success font-semibold" : "text-danger font-semibold"}>{result.correct ? `Correct! +${result.points} points` : "Not quite."}</p><p className="mt-1 text-muted">{result.explanation}</p></div>}
-          {isHost && <Button onClick={() => void nextQuestion()} disabled={loading} className="w-full">{room.question_index+1===room.question_count ? "Finish match" : "Next question"}</Button>}
+          {isHost && <Button onClick={() => void nextQuestion()} disabled={loading || remaining > 0} className="w-full">{room.question_index+1===room.question_count ? "Finish match" : "Next question"}</Button>}
         {!isHost && <p className="text-xs text-muted">Waiting for the host to move to the next question.</p>}
       </Card>
       )}
