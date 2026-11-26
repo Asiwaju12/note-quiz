@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { ArrowLeft, FileText, Gamepad2, GraduationCap, Layers, Pencil, Target, Trash2 } from "lucide-react";
+import { ArrowLeft, FileText, Gamepad2, GraduationCap, Layers, Pencil, Target, Trash2, Users } from "lucide-react";
 import { useCollection } from "@/data/db";
 import type { Attempt, Flashcard, SavedDeck } from "@/data/models";
 import { createCards, deleteDeck, updateDeck } from "@/data/repos";
