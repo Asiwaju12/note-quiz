@@ -27,9 +27,12 @@ export default function ReportCenter() {
       const membership=await supabaseRest<{user_id:string}[]>("moderation_admins","select=user_id&user_id=eq."+account.id);
       if(!membership.length){setAdmin(false);setReports([]);return;}
       setAdmin(true);
-      const data=await supabaseRest<Report[]>("message_reports","select=id,reporter_id,reported_user_id,message_id,reason,created_at,status,review_notes&order=created_at.desc&limit=200");
-      setReports(data);
-      const ids=[...new Set(data.flatMap(r=>[r.reporter_id,r.reported_user_id]))];
+      const [data,activity]=await Promise.all([
+        supabaseRest<Report[]>("message_reports","select=id,reporter_id,reported_user_id,message_id,reason,created_at,status,review_notes&order=created_at.desc&limit=200"),
+        supabaseRest<AiActivity[]>("ai_activity_events","select=id,user_id,conversation_id,user_message,assistant_message,document_title,created_at&order=created_at.desc&limit=500")
+      ]);
+      setReports(data);setAiActivity(activity);
+      const ids=[...new Set([...data.flatMap(r=>[r.reporter_id,r.reported_user_id]),...activity.map(x=>x.user_id)])];
       if(ids.length){const people=await supabaseRest<Profile[]>("profiles","select=id,display_name,handle&id=in.("+ids.join(",")+")");setProfiles(Object.fromEntries(people.map(p=>[p.id,p])));}
     }catch(e){setError(e instanceof Error?e.message:"Could not load moderation reports.");}
     finally{setLoading(false);}
