@@ -112,7 +112,7 @@ export const supabaseAuth = {
   async resetPassword(email: string, redirectTo = window.location.origin) {
     return request("/auth/v1/recover", { method: "POST", body: JSON.stringify({ email, redirect_to: redirectTo }) });
   },
-  async resendSignup(email: string, redirectTo = `${window.location.origin}/`) {
+  async resendSignup(email: string, redirectTo = "https://recall-quiz-study.vercel.app/") {
     return request(`/auth/v1/resend?redirect_to=${encodeURIComponent(redirectTo)}`, {
       method: "POST",
       body: JSON.stringify({ type: "signup", email: email.trim().toLowerCase() }),
