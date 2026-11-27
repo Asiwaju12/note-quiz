@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Bell, Cloud, Database, KeyRound, LogOut, Moon, Sparkles, Trash2, Volume2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bell, Cloud, Database, KeyRound, LogOut, Moon, Sparkles, Trash2, Volume2, Ban, ShieldCheck } from "lucide-react";
 import { useAccount } from "@/app/account";
 import { updateAccountName } from "@/services/auth";
 import { useAiStatus } from "@/services/ai";
@@ -106,6 +107,8 @@ export default function Profile() {
           </Button>
         </form>
       </Card>
+
+      <Card className="mb-5 p-4"><div className="flex flex-wrap gap-2"><Link to="/blocked-users" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><Ban className="h-4 w-4"/>Blocked users</Link><Link to="/admin/reports" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><ShieldCheck className="h-4 w-4"/>Report review (moderators)</Link></div></Card>
 
       <h2 id="notifications" className="mb-2 px-1 text-sm font-semibold text-muted">Notifications</h2>
       <Card className="mb-5 divide-y divide-border">
