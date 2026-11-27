@@ -75,9 +75,17 @@ export function AuthDialog() {
       else if (mode === "signup" && result.error.startsWith("Check your email to confirm")) {
         setPendingVerification(true);
         setInfo(result.error);
+      } else if (mode === "signup" && /already been used to create an account|user_already_exists|already registered|already been registered/i.test(result.error)) {
+        // Keep the entered email and move returning users directly to the sign-in form.
+        setMode("signin");
+        setPendingVerification(false);
+        setInfo("You've already used this email to create an account. Sign in with your password, or use Forgot your password if needed.");
+      } else if (mode === "signin" && /email not confirmed|confirm your email/i.test(result.error)) {
+        setError("Your account exists, but its email address hasn't been confirmed yet. Request a fresh confirmation email below, then open the newest link.");
+        setPendingVerification(true);
       } else {
         setError(result.error);
-        setPendingVerification(mode === "signin" && /email not confirmed|confirm your email/i.test(result.error));
+        setPendingVerification(false);
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Something went wrong.");
