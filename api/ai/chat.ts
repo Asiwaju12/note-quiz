@@ -20,10 +20,10 @@ function validate(body:ChatRequest):ChatRequest {
 async function saveAiActivity(request:Request,userId:string,body:ChatRequest,answer:string):Promise<void> {
  const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL;
  const key=process.env.VITE_SUPABASE_PUBLISHABLE_KEY||process.env.SUPABASE_PUBLISHABLE_KEY;
- const token=request.headers.get("authorization")?.replace(/^Bearer\\s+/i,"");
+ const token=request.headers.get("authorization")?.replace(/^Bearer\s+/i,"");
  const question=[...body.messages].reverse().find(m=>m.role==="user")?.content;
  if(!url||!key||!token||!question||!answer.trim()) return;
- const response=await fetch(`${url.replace(/\\/$/,"")}/rest/v1/ai_activity_events`,{
+ const response=await fetch(`${url.replace(/\/$/,"")}/rest/v1/ai_activity_events`,{
   method:"POST",
   headers:{apikey:key,Authorization:`Bearer ${token}`,"Content-Type":"application/json",Prefer:"return=minimal"},
   body:JSON.stringify({user_id:userId,conversation_id:body.conversationId||"general",user_message:question.slice(0,12000),assistant_message:answer.slice(0,30000),document_title:body.document?.title?.slice(0,200)||null}),
