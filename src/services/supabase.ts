@@ -6,6 +6,9 @@ export type SupabaseUser = {
   email?: string;
   user_metadata?: Record<string, unknown>;
   identities?: Array<{ identity_id?: string; provider?: string }>;
+  created_at?: string;
+  confirmation_sent_at?: string;
+  confirmed_at?: string | null;
 };
 export type SupabaseSession = {
   access_token: string;
