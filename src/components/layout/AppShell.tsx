@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { Bell, Flame, Grid2x2, Moon, Sun, X } from "lucide-react";
+import { Bell, Flame, Grid2x2, MessageCircle, Moon, Sun, Users, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAccount } from "@/app/account";
 import { useCollection } from "@/data/db";
@@ -327,7 +327,7 @@ function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
-  const [messagingUpdate, setMessagingUpdate] = useState(() => { try { return localStorage.getItem("recall-messaging-update-2026-11") !== "dismissed"; } catch { return true; } });
+  const [messagingUpdate, setMessagingUpdate] = useState(() => { try { return localStorage.getItem("recall-messaging-launch-popup-v1") !== "dismissed"; } catch { return true; } });
   const { pathname } = useLocation();
   return (
     <div className="min-h-dvh">
@@ -339,7 +339,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <LiveNotificationPopups />
       <div className="md:pl-[76px] lg:pl-[248px]">
         <main id="main" className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-5 sm:px-6 md:pb-16 md:pt-10 lg:px-10">
-          {messagingUpdate && <div className="mb-5 flex items-start gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 p-4"><div className="min-w-0 flex-1"><p className="text-sm font-semibold">New: Connect and chat in Recall Quiz</p><p className="mt-1 text-xs text-muted">Send messages to friends, react with emojis, reply, and start multiplayer study rooms.</p><Link to="/messages" className="mt-2 inline-flex text-xs font-semibold text-accent-text underline underline-offset-4">Try messaging</Link></div><button type="button" aria-label="Dismiss messaging update" className="rounded-lg p-1 text-muted hover:bg-surface-3" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-update-2026-11", "dismissed"); } catch { /* Ignore storage restrictions. */ } }}><X className="h-4 w-4" /></button></div>}
+          {messagingUpdate && pathname === "/" && <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" role="presentation"><motion.section role="dialog" aria-modal="true" aria-labelledby="messaging-launch-title" initial={{ opacity: 0, y: 18, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.25 }} className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-surface p-6 shadow-2xl sm:p-7"><button type="button" aria-label="Close announcement" className="absolute right-4 top-4 rounded-xl p-2 text-muted hover:bg-surface-3" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-launch-popup-v1", "dismissed"); } catch { /* Ignore storage restrictions. */ } }}><X className="h-4 w-4" /></button><div className="mb-5 grid h-14 w-14 place-items-center rounded-2xl bg-accent-soft text-accent-text"><MessageCircle className="h-7 w-7" /></div><p className="eyebrow mb-2 text-accent-text">A new way to study together</p><h2 id="messaging-launch-title" className="text-2xl font-bold tracking-tight text-text">Messages are now on Recall Quiz!</h2><p className="mt-3 text-sm leading-6 text-muted">You can now connect with other learners without leaving Recall Quiz. Find friends, send private messages, and invite people to study and compete together.</p><div className="my-5 space-y-3 rounded-2xl bg-surface-2 p-4"><div className="flex items-center gap-3 text-sm"><Users className="h-4 w-4 text-accent-text"/> Find and add friends</div><div className="flex items-center gap-3 text-sm"><MessageCircle className="h-4 w-4 text-accent-text"/> Chat and react to messages</div><div className="flex items-center gap-3 text-sm"><Flame className="h-4 w-4 text-accent-text"/> Study and compete together</div></div><Link to="/messages" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-launch-popup-v1", "dismissed"); } catch { /* Ignore storage restrictions. */ } }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90">Explore Messages <MessageCircle className="h-4 w-4"/></Link><button type="button" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-launch-popup-v1", "dismissed"); } catch { /* Ignore storage restrictions. */ } }} className="mt-3 w-full rounded-xl px-4 py-2 text-sm font-medium text-muted hover:bg-surface-3">Maybe later</button></motion.section></div>}
           <motion.div key={pathname.split("/").slice(0, 3).join("/")} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
             {children}
           </motion.div>
