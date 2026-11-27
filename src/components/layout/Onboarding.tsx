@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, BookOpen, BrainCircuit, MessageCircle, Sparkles, Target, Trophy, Users } from "lucide-react";
 import { useAccount } from "@/app/account";
 import { updateSettings, useSettings } from "@/data/settings";
+import { supabaseRest } from "@/services/supabase";
+import { toast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Overlay";
 import { Button } from "@/components/ui/Button";
 import { Chips, Field, Input } from "@/components/ui/primitives";
@@ -18,13 +20,58 @@ const steps = [
 export function Onboarding() {
   const settings = useSettings();
   const { account, mode, openAuth } = useAccount();
+  const [cloudOnboarded, setCloudOnboarded] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const [name, setName] = useState(settings.name);
   const [minutes, setMinutes] = useState(settings.dailyGoalMinutes);
   const [step, setStep] = useState(-1);
-  const open = !settings.onboarded;
+  useEffect(() => {
+    if (!account?.id) {
+      setCloudOnboarded(null);
+      return;
+    }
+    let active = true;
+    setCloudOnboarded(null);
+    void supabaseRest<Array<{ onboarded: boolean }>>(
+      "profiles",
+      `select=onboarded&id=eq.${encodeURIComponent(account.id)}&limit=1`,
+    )
+      .then((rows) => {
+        if (active) setCloudOnboarded(rows[0]?.onboarded ?? false);
+      })
+      .catch((error) => {
+        console.error("Could not load account onboarding status:", error);
+        if (active) setCloudOnboarded(false);
+      });
+    return () => { active = false; };
+  }, [account?.id]);
 
-  const finish = () => updateSettings({ onboarded: true, name: name.trim().slice(0, 40), dailyGoalMinutes: minutes });
+  const open = account ? cloudOnboarded === false : !settings.onboarded;
+
+  const finish = async () => {
+    if (account?.id) {
+      try {
+        const rows = await supabaseRest<Array<{ id: string }>>(
+          "profiles",
+          `id=eq.${encodeURIComponent(account.id)}&select=id`,
+          {
+            method: "PATCH",
+            headers: { Prefer: "return=representation" },
+            body: JSON.stringify({ onboarded: true, updated_at: new Date().toISOString() }),
+          },
+        );
+        if (!rows.length) throw new Error("Your onboarding progress could not be saved to your account.");
+        setCloudOnboarded(true);
+      } catch (error) {
+        toast("Could not save your onboarding progress", {
+          tone: "error",
+          description: error instanceof Error ? error.message : "Please try again.",
+        });
+        return;
+      }
+    }
+    updateSettings({ onboarded: true, name: name.trim().slice(0, 40), dailyGoalMinutes: minutes });
+  };
   const current = steps[step];
   const Icon = current?.icon;
 
