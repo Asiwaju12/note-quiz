@@ -185,7 +185,7 @@ export function ChatView({
       };
       try {
         await streamChat(
-          { messages: history.map((m) => ({ role: m.role, content: m.content })), mode: sendMode ?? undefined, document: documentContext, mistakes },
+          { conversationId: thread, messages: history.map((m) => ({ role: m.role, content: m.content })), mode: sendMode ?? undefined, document: documentContext, mistakes },
           (delta) => {
             pending += delta;
             if (!frame) frame = requestAnimationFrame(flush);
@@ -385,7 +385,7 @@ export function ChatView({
         )}
       </div>
 
-      <div className="border-t border-border pt-3">
+      <div className="mb-3 rounded-xl bg-surface-2 px-3 py-2 text-xs leading-relaxed text-muted">Your Recall AI conversations are saved to your account and may be reviewed by authorised Recall Quiz moderators for safety and platform support. Please avoid sharing passwords or highly sensitive personal information.</div>\n      <div className="border-t border-border pt-3">
         <div className="no-scrollbar -mx-1 mb-2.5 flex gap-1.5 overflow-x-auto px-1" role="group" aria-label="Learning modes">
           {TUTOR_MODES.map((item) => (
             <button
