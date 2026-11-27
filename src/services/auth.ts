@@ -34,6 +34,20 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
   if (!/^[A-Z0-9]{2,4}$/.test(handle)) return { ok: false, error: "Use 2–4 letters or numbers for your board tag.", field: "handle" };
   if (input.password.length < 8) return { ok: false, error: "Use at least 8 characters for your password.", field: "password" };
   try {
+    // Check existing accounts through the server-only Supabase Admin API.
+    // Never ship the service-role key to the browser.
+    const emailCheck = await fetch("/api/auth/email-check", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (emailCheck.ok) {
+      const check = await emailCheck.json() as { exists?: boolean };
+      if (check.exists) return { ok: false, error: EXISTING_EMAIL_MESSAGE, field: "email" };
+    } else {
+      const check = await emailCheck.json().catch(() => null) as { error?: string } | null;
+      return { ok: false, error: check?.error || "We couldn't check this email right now. Please try again." };
+    }
     const data = await supabaseAuth.signUp(email, input.password, { display_name: name, handle });
     // Supabase may mask duplicate signups with a successful-looking confirmation response.
     // Empty identities is its documented duplicate signal; an older created_at timestamp
