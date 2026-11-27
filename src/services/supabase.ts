@@ -55,7 +55,8 @@ export const supabaseAuth = {
   async signUp(email: string, password: string, metadata: Record<string, unknown>) {
     // Always return confirmation links to the site where signup began.
     // Otherwise Supabase falls back to its Site URL, which may still be the old deployment.
-    const redirectTo = `${window.location.origin}/`;
+    // Use the canonical production domain so confirmation links never point to a temporary preview URL.
+    const redirectTo = "https://recall-quiz-study.vercel.app/";
     const data = await request<SupabaseSession>(
       `/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
       {
@@ -176,11 +177,19 @@ export async function deletePrivateFile(bucket: string, objectPath: string): Pro
  */
 export async function restoreAuthSessionFromUrl(): Promise<{ type: string | null; error: string | null }> {
   const fragment = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
-  const params = new URLSearchParams(fragment);
+  const hashParams = new URLSearchParams(fragment);
+  const searchParams = new URLSearchParams(window.location.search);
+  // GoTrue can return success tokens in the URL hash and verification errors in the query string.
+  const params = hashParams.has("access_token") || hashParams.has("refresh_token") ? hashParams : searchParams;
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
   const type = params.get('type');
-  const callbackError = params.get('error_description') || params.get('error');
+  const rawCallbackError = params.get('error_description') || params.get('error');
+  const callbackError = rawCallbackError
+    ? (/otp_expired|token.*not found|invalid.*expired|expired.*invalid/i.test(`${params.get("error_code") || ""} ${rawCallbackError}`)
+      ? "This confirmation link is invalid or has expired. Request a fresh confirmation email and open the newest link."
+      : rawCallbackError.replace(/\\+/g, " "))
+    : null;
 
   if (!accessToken && !refreshToken && !callbackError) return { type: null, error: null };
 
