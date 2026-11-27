@@ -128,7 +128,7 @@ function useUnreadAlertCount() {
 function NotificationLink({ compact = false }: { compact?: boolean }) {
   const count = useUnreadAlertCount();
   return (
-    <Link to="/messages" aria-label={count ? "Notifications, " + count + " unread" : "Notifications"} title="Notifications" className={cn("relative grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-3 hover:text-text", compact && "h-10 w-10")}>
+    <Link to="/notifications" aria-label={count ? "Notifications, " + count + " unread" : "Notifications"} title="Notifications" className={cn("relative grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-3 hover:text-text", compact && "h-10 w-10")}>
       <Bell className="h-[18px] w-[18px]" />
       {count > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[9px] font-bold leading-4 text-white">{count > 99 ? "99+" : count}</span>}
     </Link>
@@ -178,7 +178,7 @@ function LiveNotificationPopups() {
       {alerts.map(alert => (
         <div key={alert.id} className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xl">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-text"><Bell className="h-4 w-4" /></span>
-          <Link to="/messages" onClick={() => setAlerts(current => current.filter(a => a.id !== alert.id))} className="min-w-0 flex-1">
+          <Link to="/notifications" onClick={() => setAlerts(current => current.filter(a => a.id !== alert.id))} className="min-w-0 flex-1">
             <p className="text-sm font-semibold">{alert.title}</p>
             <p className="mt-1 line-clamp-2 text-xs text-muted">{alert.body}</p>
             <span className="mt-2 inline-block text-xs font-semibold text-accent-text">Open messages</span>
@@ -331,7 +331,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [messagingUpdate, setMessagingUpdate] = useState(false);
   useEffect(() => {
     if (!account?.id) { setMessagingUpdate(false); return; }
-    try { setMessagingUpdate(localStorage.getItem(`recall-messaging-launch-popup-v1:${account.id}`) !== "dismissed"); }
+    try { setMessagingUpdate(localStorage.getItem(`recall-messaging-launch-popup-v2:${account.id}`) !== "dismissed"); }
     catch { setMessagingUpdate(true); }
   }, [account?.id]);
   const dismissMessagingUpdate = () => {
