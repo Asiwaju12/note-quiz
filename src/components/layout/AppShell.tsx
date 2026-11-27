@@ -134,6 +134,62 @@ function NotificationLink({ compact = false }: { compact?: boolean }) {
     </Link>
   );
 }
+type LiveAlert = { id: string; title: string; body: string; createdAt: string };
+function LiveNotificationPopups() {
+  const { account, mode } = useAccount();
+  const [alerts, setAlerts] = useState<LiveAlert[]>([]);
+  const { pathname } = useLocation();
+  useEffect(() => {
+    if (!account?.id || mode !== "cloud") { setAlerts([]); return; }
+    let active = true;
+    let initialized = false;
+    let since = new Date().toISOString();
+    const seen = new Set<string>();
+    const refresh = async () => {
+      try {
+        const [messages, requests] = await Promise.all([
+          supabaseRest<{ id: string; body: string; created_at: string }[]>("direct_messages", "select=id,body,created_at&receiver_id=eq." + account.id + "&created_at=gt." + encodeURIComponent(since) + "&order=created_at.desc&limit=8"),
+          supabaseRest<{ id: string; created_at: string }[]>("friend_requests", "select=id,created_at&receiver_id=eq." + account.id + "&status=eq.pending&created_at=gt." + encodeURIComponent(since) + "&order=created_at.desc&limit=8"),
+        ]);
+        if (!active) return;
+        const now = new Date().toISOString();
+        if (initialized) {
+          const incoming: LiveAlert[] = [
+            ...messages.map(m => ({ id: "message-" + m.id, title: "New message", body: m.body || "You received a message.", createdAt: m.created_at })),
+            ...requests.map(r => ({ id: "request-" + r.id, title: "New friend request", body: "Someone wants to connect with you on Recall Quiz.", createdAt: r.created_at })),
+          ].filter(a => !seen.has(a.id)).sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+          incoming.forEach(a => seen.add(a.id));
+          if (incoming.length) setAlerts(current => [...incoming, ...current].slice(0, 3));
+        } else {
+          messages.forEach(m => seen.add("message-" + m.id));
+          requests.forEach(r => seen.add("request-" + r.id));
+          initialized = true;
+        }
+        since = now;
+      } catch { /* Keep the app usable if realtime polling is temporarily unavailable. */ }
+    };
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 12000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [account?.id, mode]);
+  if (!alerts.length) return null;
+  return (
+    <div aria-live="polite" aria-relevant="additions" className="pointer-events-none fixed right-4 top-16 z-[100] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2 md:right-6 md:top-6">
+      {alerts.map(alert => (
+        <div key={alert.id} className="pointer-events-auto flex items-start gap-3 rounded-2xl border border-border bg-surface p-4 shadow-xl">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-text"><Bell className="h-4 w-4" /></span>
+          <Link to="/messages" onClick={() => setAlerts(current => current.filter(a => a.id !== alert.id))} className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">{alert.title}</p>
+            <p className="mt-1 line-clamp-2 text-xs text-muted">{alert.body}</p>
+            <span className="mt-2 inline-block text-xs font-semibold text-accent-text">Open messages</span>
+          </Link>
+          <button type="button" aria-label="Dismiss notification" onClick={() => setAlerts(current => current.filter(a => a.id !== alert.id))} className="rounded-lg p-1 text-muted hover:bg-surface-3"><X className="h-4 w-4" /></button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Sidebar() {
   const { displayName, mode, account } = useAccount();
   const ai = useAiStatus();
@@ -280,6 +336,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <Sidebar />
       <MobileTopBar />
+      <LiveNotificationPopups />
       <div className="md:pl-[76px] lg:pl-[248px]">
         <main id="main" className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-5 sm:px-6 md:pb-16 md:pt-10 lg:px-10">
           {messagingUpdate && <div className="mb-5 flex items-start gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 p-4"><div className="min-w-0 flex-1"><p className="text-sm font-semibold">New: Connect and chat in Recall Quiz</p><p className="mt-1 text-xs text-muted">Send messages to friends, react with emojis, reply, and start multiplayer study rooms.</p><Link to="/messages" className="mt-2 inline-flex text-xs font-semibold text-accent-text underline underline-offset-4">Try messaging</Link></div><button type="button" aria-label="Dismiss messaging update" className="rounded-lg p-1 text-muted hover:bg-surface-3" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-update-2026-11", "dismissed"); } catch { /* Ignore storage restrictions. */ } }}><X className="h-4 w-4" /></button></div>}
