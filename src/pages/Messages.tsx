@@ -9,7 +9,8 @@ import { toast } from "@/components/ui/Toast";
 
 type Profile = { id:string; display_name:string; handle:string; avatar_color:string };
 type RequestRow = { id:string; sender_id:string; receiver_id:string; status:string; created_at:string };
-type MessageRow = { id:string; sender_id:string; receiver_id:string; body:string; created_at:string; read_at:string|null; edited_at?:string|null; reply_to?:string|null };\ntype ReactionRow = {id:string;message_id:string;user_id:string;emoji:string};
+type MessageRow = { id:string; sender_id:string; receiver_id:string; body:string; created_at:string; read_at:string|null; edited_at?:string|null; reply_to?:string|null };
+type ReactionRow = {id:string;message_id:string;user_id:string;emoji:string};
 let clientRef: SupabaseClient | null = null;
 async function getClient() {
  const session=await supabaseAuth.getSession(); if(!session) throw new Error("Please sign in.");
@@ -21,7 +22,8 @@ export default function Messages() {
  const [search,setSearch]=useState(""); const [results,setResults]=useState<Profile[]>([]);
  const [requests,setRequests]=useState<RequestRow[]>([]); const [friends,setFriends]=useState<Profile[]>([]); const [requestProfiles,setRequestProfiles]=useState<Record<string,Profile>>({});
  const [selected,setSelected]=useState<Profile|null>(null); const [messages,setMessages]=useState<MessageRow[]>([]);
- const [draft,setDraft]=useState(""); const [busy,setBusy]=useState(false); const [error,setError]=useState("");\n const [editing,setEditing]=useState<string|null>(null); const [editBody,setEditBody]=useState(""); const [replyTo,setReplyTo]=useState<MessageRow|null>(null); const [reactions,setReactions]=useState<ReactionRow[]>([]); const [messageSearch,setMessageSearch]=useState(""); const [unreadCounts,setUnreadCounts]=useState<Record<string,number>>({}); const [blocked,setBlocked]=useState(false);
+ const [draft,setDraft]=useState(""); const [busy,setBusy]=useState(false); const [error,setError]=useState("");
+ const [editing,setEditing]=useState<string|null>(null); const [editBody,setEditBody]=useState(""); const [replyTo,setReplyTo]=useState<MessageRow|null>(null); const [reactions,setReactions]=useState<ReactionRow[]>([]); const [messageSearch,setMessageSearch]=useState(""); const [unreadCounts,setUnreadCounts]=useState<Record<string,number>>({}); const [blocked,setBlocked]=useState(false);
  const refreshLists=async()=>{
   if(!account)return;
   const [req,friendRows]=await Promise.all([
