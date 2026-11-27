@@ -7,7 +7,9 @@ import { Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toast";
 
 type Report = { id:string; reporter_id:string; reported_user_id:string; message_id:string|null; reason:string; created_at:string; status:"new"|"under_review"|"resolved"|"dismissed"; review_notes:string|null };
-type Profile = { id:string; display_name:string; handle:string; created_at?:string; onboarded?:boolean };\ntype UserBlock = { blocker_id:string; blocked_id:string; created_at:string };\ntype AdminTab = "overview" | "ai" | "reports" | "users" | "safety";
+type Profile = { id:string; display_name:string; handle:string; created_at?:string; onboarded?:boolean };
+type UserBlock = { blocker_id:string; blocked_id:string; created_at:string };
+type AdminTab = "overview" | "ai" | "reports" | "users" | "safety";
 type AiActivity = { id:string; user_id:string; conversation_id:string; user_message:string; assistant_message:string; document_title:string|null; created_at:string };
 const statusLabel: Record<Report["status"],string> = { new:"New", under_review:"Under review", resolved:"Resolved", dismissed:"Dismissed" };
 
@@ -15,7 +17,11 @@ export default function ReportCenter() {
   const { account, openAuth } = useAccount();
   const [admin,setAdmin]=useState(false);
   const [reports,setReports]=useState<Report[]>([]);
-  const [aiActivity,setAiActivity]=useState<AiActivity[]>([]);\n  const [users,setUsers]=useState<Profile[]>([]);\n  const [blocks,setBlocks]=useState<UserBlock[]>([]);\n  const [tab,setTab]=useState<AdminTab>("overview");\n  const [userSearch,setUserSearch]=useState("");
+  const [aiActivity,setAiActivity]=useState<AiActivity[]>([]);
+  const [users,setUsers]=useState<Profile[]>([]);
+  const [blocks,setBlocks]=useState<UserBlock[]>([]);
+  const [tab,setTab]=useState<AdminTab>("overview");
+  const [userSearch,setUserSearch]=useState("");
   const [studentSearch,setStudentSearch]=useState("");
   const [activityDate,setActivityDate]=useState("");
   const [profiles,setProfiles]=useState<Record<string,Profile>>({});
