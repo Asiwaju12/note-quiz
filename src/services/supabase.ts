@@ -53,9 +53,8 @@ function withExpiry<T extends SupabaseSession>(data: T): T {
 }
 export const supabaseAuth = {
   async signUp(email: string, password: string, metadata: Record<string, unknown>) {
-    // Always return confirmation links to the site where signup began.
-    // Otherwise Supabase falls back to its Site URL, which may still be the old deployment.
-    // Use the canonical production domain so confirmation links never point to a temporary preview URL.
+    // Always return confirmation links to the canonical live Recall Quiz domain,
+    // never to a temporary preview deployment.
     const redirectTo = "https://recall-quiz-study.vercel.app/";
     const data = await request<SupabaseSession>(
       `/auth/v1/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
@@ -194,7 +193,10 @@ export async function restoreAuthSessionFromUrl(): Promise<{ type: string | null
   if (!accessToken && !refreshToken && !callbackError) return { type: null, error: null };
 
   const cleanCallbackUrl = () => {
-    window.history.replaceState(window.history.state, document.title, `${window.location.pathname}${window.location.search}`);
+    const cleanSearch = new URLSearchParams(window.location.search);
+    ["access_token", "refresh_token", "type", "error", "error_code", "error_description", "expires_in", "expires_at", "token_type"].forEach((key) => cleanSearch.delete(key));
+    const query = cleanSearch.toString();
+    window.history.replaceState(window.history.state, document.title, `${window.location.pathname}${query ? `?${query}` : ""}`);
   };
 
   if (callbackError) {
