@@ -44,7 +44,7 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
     return { ok: true, account: await accountForSession(data), created: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not create your account.";
-    if (/user_already_exists|already registered|already been registered/i.test(message)) {
+    if (/user_already_exists|email_exists|already registered|already been registered|email.{0,30}already exists|already exists/i.test(message)) {
       return { ok: false, error: EXISTING_EMAIL_MESSAGE, field: "email" };
     }
     return { ok: false, error: message };
