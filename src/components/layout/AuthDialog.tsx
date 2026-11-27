@@ -23,7 +23,8 @@ export function AuthDialog() {
   useEffect(() => {
     if (!authOpen) return;
     setMode(authMode);
-    setError(callbackError);
+    const linkExpired = callbackError && /invalid.*expired|expired.*invalid|one.time token not found|token.*not found|confirmation.*expired/i.test(callbackError);
+    setError(linkExpired ? "This confirmation link is invalid or has expired. Request a fresh email below and open the newest link. Older links may no longer work." : callbackError);
     setInfo(null);
   }, [authOpen, authMode, callbackError]);
 
@@ -150,6 +151,11 @@ export function AuthDialog() {
           </Field>
         )}
         {error && <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2.5 text-sm text-danger">{error}</p>}
+        {mode === "signup" && error?.includes("already been used to create an account") && (
+          <Button type="button" variant="secondary" size="lg" onClick={() => { setMode("signin"); setError(null); setInfo(null); }}>
+            Go to sign in
+          </Button>
+        )}
         {info && <p role="status" className="rounded-xl bg-success-soft px-3 py-2.5 text-sm text-success">{info}</p>}
         <Button type="submit" size="lg" loading={busy}>
           {mode === "signup" ? "Create account" : mode === "reset" ? "Send reset link" : "Sign in"}
