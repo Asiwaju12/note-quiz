@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Cloud, Database, KeyRound, LogOut, Moon, Sparkles, Trash2, Volume2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Cloud, Database, KeyRound, LogOut, Moon, Sparkles, Trash2, Volume2 } from "lucide-react";
 import { useAccount } from "@/app/account";
 import { updateAccountName } from "@/services/auth";
 import { useAiStatus } from "@/services/ai";
@@ -12,6 +12,7 @@ import { Badge, Card, Chips, Field, Input, PageHeader } from "@/components/ui/pr
 import { Segmented } from "@/components/ui/Tabs";
 import { confirmAction } from "@/components/ui/Confirm";
 import { toast } from "@/components/ui/Toast";
+import { disablePushNotifications, enablePushNotifications, pushEnabled } from "@/services/push-notifications";
 
 function Row({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -39,6 +40,19 @@ export default function Profile() {
   const ai = useAiStatus();
   const [name, setName] = useState(account?.name ?? settings.name);
   const [signingOut, setSigningOut] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  useEffect(() => { let active = true; void pushEnabled().then(value => active && setPushOn(value)).catch(() => undefined); return () => { active = false; }; }, [account?.id]);
+  const togglePush = async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      if (pushOn) await disablePushNotifications(); else await enablePushNotifications();
+      const enabled = await pushEnabled(); setPushOn(enabled);
+      toast(enabled ? "Message notifications enabled" : "Message notifications disabled");
+    } catch (error) { toast("Notification setting not changed", { tone: "error", description: error instanceof Error ? error.message : "Please try again." }); }
+    finally { setPushBusy(false); }
+  };
 
   const handleSignOut = async () => {
     if (signingOut) return;
@@ -120,6 +134,14 @@ export default function Profile() {
             <Toggle label="Sound effects" checked={!settings.muted} onChange={(v) => updateSettings({ muted: !v })} />
           </span>
         </Row>
+      </Card>
+
+      <h2 className="mb-2 px-1 text-sm font-semibold text-muted">Notifications</h2>
+      <Card className="mb-5 divide-y divide-border">
+        <Row title="Message & friend request alerts" description={account ? "Receive browser notifications when someone messages or sends you a friend request, even when Recall Quiz is not open." : "Sign in to turn on push notifications for messages and friend requests."}>
+          {account ? <span className="inline-flex items-center gap-2"><Bell className="h-4 w-4 text-subtle" /><Toggle label="Message notifications" checked={pushOn} onChange={() => void togglePush()} /></span> : <Button size="sm" variant="secondary" onClick={() => openAuth("signin")}>Sign in</Button>}
+        </Row>
+        {account && <Row title="Notification status" description={pushOn ? "This browser is subscribed to push alerts." : "Alerts are off for this browser. Enable them and allow the browser permission prompt."}><Badge tone={pushOn ? "success" : "neutral"}>{pushBusy ? "Updating…" : pushOn ? "Enabled" : "Off"}</Badge></Row>}
       </Card>
 
       <h2 className="mb-2 px-1 text-sm font-semibold text-muted">Connections</h2>
