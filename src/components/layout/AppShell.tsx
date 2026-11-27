@@ -1,7 +1,7 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { motion } from "motion/react";
-import { Flame, Grid2x2, Moon, Sun } from "lucide-react";
+import { Bell, Flame, Grid2x2, Moon, Sun, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useAccount } from "@/app/account";
 import { useCollection } from "@/data/db";
@@ -9,6 +9,7 @@ import type { DailyStat } from "@/data/models";
 import { resolvedTheme, updateSettings, useSettings } from "@/data/settings";
 import { computeStreak } from "@/lib/learning/insights";
 import { useAiStatus } from "@/services/ai";
+import { supabaseRest } from "@/services/supabase";
 import { Avatar } from "./Avatar";
 import { Logo, LogoMark } from "./Logo";
 import { PRIMARY_NAV, PROFILE_NAV, SECONDARY_NAV, isActivePath, type NavItem } from "./nav";
@@ -102,6 +103,37 @@ function StreakPill() {
   );
 }
 
+function useUnreadAlertCount() {
+  const { account, mode } = useAccount();
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!account || mode !== "cloud") { setCount(0); return; }
+    let active = true;
+    const refresh = async () => {
+      try {
+        const [messages, requests] = await Promise.all([
+          supabaseRest<{ id: string }[]>("direct_messages", "select=id&receiver_id=eq." + account.id + "&read_at=is.null&limit=100"),
+          supabaseRest<{ id: string }[]>("friend_requests", "select=id&receiver_id=eq." + account.id + "&status=eq.pending&limit=100"),
+        ]);
+        if (active) setCount(messages.length + requests.length);
+      } catch { /* Notification counts are non-blocking. */ }
+    };
+    void refresh();
+    const interval = window.setInterval(() => void refresh(), 30000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [account?.id, mode]);
+  return count;
+}
+
+function NotificationLink({ compact = false }: { compact?: boolean }) {
+  const count = useUnreadAlertCount();
+  return (
+    <Link to="/messages" aria-label={count ? "Notifications, " + count + " unread" : "Notifications"} title="Notifications" className={cn("relative grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-surface-3 hover:text-text", compact && "h-10 w-10")}>
+      <Bell className="h-[18px] w-[18px]" />
+      {count > 0 && <span className="absolute -right-0.5 -top-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-danger px-1 text-[9px] font-bold leading-4 text-white">{count > 99 ? "99+" : count}</span>}
+    </Link>
+  );
+}
 function Sidebar() {
   const { displayName, mode, account } = useAccount();
   const ai = useAiStatus();
@@ -134,6 +166,7 @@ function Sidebar() {
       <div className="mt-4 border-t border-border pt-3">
         <div className="mb-2 flex flex-col items-center gap-1 lg:flex-row lg:justify-between lg:px-1">
           <StreakPill />
+          <NotificationLink />
           <ThemeToggle />
         </div>
         <NavLink
@@ -169,6 +202,7 @@ function MobileTopBar() {
       </Link>
       <div className="flex items-center gap-0.5">
         <StreakPill />
+        <NotificationLink compact />
         <ThemeToggle />
       </div>
     </header>
@@ -237,6 +271,7 @@ function MoreSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const [messagingUpdate, setMessagingUpdate] = useState(() => { try { return localStorage.getItem("recall-messaging-update-2026-11") !== "dismissed"; } catch { return true; } });
   const { pathname } = useLocation();
   return (
     <div className="min-h-dvh">
@@ -247,6 +282,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <MobileTopBar />
       <div className="md:pl-[76px] lg:pl-[248px]">
         <main id="main" className="mx-auto w-full max-w-[1120px] px-4 pb-28 pt-5 sm:px-6 md:pb-16 md:pt-10 lg:px-10">
+          {messagingUpdate && <div className="mb-5 flex items-start gap-3 rounded-2xl border border-accent/25 bg-accent-soft/50 p-4"><div className="min-w-0 flex-1"><p className="text-sm font-semibold">New: Connect and chat in Recall Quiz</p><p className="mt-1 text-xs text-muted">Send messages to friends, react with emojis, reply, and start multiplayer study rooms.</p><Link to="/messages" className="mt-2 inline-flex text-xs font-semibold text-accent-text underline underline-offset-4">Try messaging</Link></div><button type="button" aria-label="Dismiss messaging update" className="rounded-lg p-1 text-muted hover:bg-surface-3" onClick={() => { setMessagingUpdate(false); try { localStorage.setItem("recall-messaging-update-2026-11", "dismissed"); } catch { /* Ignore storage restrictions. */ } }}><X className="h-4 w-4" /></button></div>}
           <motion.div key={pathname.split("/").slice(0, 3).join("/")} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}>
             {children}
           </motion.div>
