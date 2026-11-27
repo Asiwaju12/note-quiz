@@ -35,9 +35,12 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
   if (input.password.length < 8) return { ok: false, error: "Use at least 8 characters for your password.", field: "password" };
   try {
     const data = await supabaseAuth.signUp(email, input.password, { display_name: name, handle });
-    // Supabase intentionally returns an empty identities array for an email that already exists.
-    // Detect that response so returning users are guided to sign in instead of waiting for another email.
-    if (Array.isArray(data.user?.identities) && data.user.identities.length === 0) {
+    // Supabase may mask duplicate signups with a successful-looking confirmation response.
+    // Empty identities is its documented duplicate signal; an older created_at timestamp
+    // also identifies an existing unconfirmed account when identities are included.
+    const accountCreatedAt = data.user?.created_at ? Date.parse(data.user.created_at) : NaN;
+    const accountAlreadyExisted = Number.isFinite(accountCreatedAt) && accountCreatedAt < Date.now() - 120_000;
+    if ((Array.isArray(data.user?.identities) && data.user.identities.length === 0) || accountAlreadyExisted) {
       return { ok: false, error: EXISTING_EMAIL_MESSAGE, field: "email" };
     }
     if (!data.access_token || !data.refresh_token) return { ok: false, error: "Check your email to confirm your account, then return here and sign in." };
