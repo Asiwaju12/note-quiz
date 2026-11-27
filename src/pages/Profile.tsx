@@ -107,6 +107,14 @@ export default function Profile() {
         </form>
       </Card>
 
+      <h2 id="notifications" className="mb-2 px-1 text-sm font-semibold text-muted">Notifications</h2>
+      <Card className="mb-5 divide-y divide-border">
+        <Row title="Message & friend request alerts" description={account ? "Receive browser notifications when someone messages or sends you a friend request, even when Recall Quiz is not open." : "Sign in to turn on push notifications for messages and friend requests."}>
+          {account ? <span className="inline-flex items-center gap-2"><Bell className="h-4 w-4 text-subtle" /><Toggle label="Message notifications" checked={pushOn} onChange={() => void togglePush()} /></span> : <Button size="sm" variant="secondary" onClick={() => openAuth("signin")}>Sign in</Button>}
+        </Row>
+        {account && <Row title="Notification status" description={pushOn ? "This browser is subscribed to push alerts." : "Alerts are off for this browser. Enable them and allow the browser permission prompt."}><Badge tone={pushOn ? "success" : "neutral"}>{pushBusy ? "Updating…" : pushOn ? "Enabled" : "Off"}</Badge></Row>}
+      </Card>
+
       <h2 className="mb-2 px-1 text-sm font-semibold text-muted">Study preferences</h2>
       <Card className="mb-5 divide-y divide-border">
         <Row title="Daily study goal" description="Minutes of active study per day">
@@ -134,14 +142,6 @@ export default function Profile() {
             <Toggle label="Sound effects" checked={!settings.muted} onChange={(v) => updateSettings({ muted: !v })} />
           </span>
         </Row>
-      </Card>
-
-      <h2 className="mb-2 px-1 text-sm font-semibold text-muted">Notifications</h2>
-      <Card className="mb-5 divide-y divide-border">
-        <Row title="Message & friend request alerts" description={account ? "Receive browser notifications when someone messages or sends you a friend request, even when Recall Quiz is not open." : "Sign in to turn on push notifications for messages and friend requests."}>
-          {account ? <span className="inline-flex items-center gap-2"><Bell className="h-4 w-4 text-subtle" /><Toggle label="Message notifications" checked={pushOn} onChange={() => void togglePush()} /></span> : <Button size="sm" variant="secondary" onClick={() => openAuth("signin")}>Sign in</Button>}
-        </Row>
-        {account && <Row title="Notification status" description={pushOn ? "This browser is subscribed to push alerts." : "Alerts are off for this browser. Enable them and allow the browser permission prompt."}><Badge tone={pushOn ? "success" : "neutral"}>{pushBusy ? "Updating…" : pushOn ? "Enabled" : "Off"}</Badge></Row>}
       </Card>
 
       <h2 className="mb-2 px-1 text-sm font-semibold text-muted">Connections</h2>
