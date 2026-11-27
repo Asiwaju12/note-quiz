@@ -7,13 +7,17 @@ import { Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { toast } from "@/components/ui/Toast";
 
 type Report = { id:string; reporter_id:string; reported_user_id:string; message_id:string|null; reason:string; created_at:string; status:"new"|"under_review"|"resolved"|"dismissed"; review_notes:string|null };
-type Profile = { id:string; display_name:string; handle:string };\ntype AiActivity = { id:string; user_id:string; conversation_id:string; user_message:string; assistant_message:string; document_title:string|null; created_at:string };
+type Profile = { id:string; display_name:string; handle:string };
+type AiActivity = { id:string; user_id:string; conversation_id:string; user_message:string; assistant_message:string; document_title:string|null; created_at:string };
 const statusLabel: Record<Report["status"],string> = { new:"New", under_review:"Under review", resolved:"Resolved", dismissed:"Dismissed" };
 
 export default function ReportCenter() {
   const { account, openAuth } = useAccount();
   const [admin,setAdmin]=useState(false);
-  const [reports,setReports]=useState<Report[]>([]);\n  const [aiActivity,setAiActivity]=useState<AiActivity[]>([]);\n  const [studentSearch,setStudentSearch]=useState("");\n  const [activityDate,setActivityDate]=useState("");
+  const [reports,setReports]=useState<Report[]>([]);
+  const [aiActivity,setAiActivity]=useState<AiActivity[]>([]);
+  const [studentSearch,setStudentSearch]=useState("");
+  const [activityDate,setActivityDate]=useState("");
   const [profiles,setProfiles]=useState<Record<string,Profile>>({});
   const [notes,setNotes]=useState<Record<string,string>>({});
   const [filter,setFilter]=useState<"all"|Report["status"]>("new");
