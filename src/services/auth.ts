@@ -14,6 +14,7 @@ export function deriveHandle(name: string): string {
   return `${parts[0][0]}${parts[parts.length - 1][0]}`.slice(0, 3).toUpperCase();
 }
 export type AuthResult = { ok: true; account: PublicAccount; created?: boolean } | { ok: false; error: string; field?: "name" | "email" | "handle" | "password" };
+const EXISTING_EMAIL_MESSAGE = "This email has already been used to create an account. Please switch to Sign in instead.";
 export type SignUpInput = { name: string; email: string; handle: string; password: string };
 function validateEmail(email: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email); }
 async function accountForSession(session: SupabaseSession): Promise<PublicAccount> {
@@ -34,9 +35,20 @@ export async function signUp(input: SignUpInput): Promise<AuthResult> {
   if (input.password.length < 8) return { ok: false, error: "Use at least 8 characters for your password.", field: "password" };
   try {
     const data = await supabaseAuth.signUp(email, input.password, { display_name: name, handle });
+    // Supabase intentionally returns an empty identities array for an email that already exists.
+    // Detect that response so returning users are guided to sign in instead of waiting for another email.
+    if (Array.isArray(data.user?.identities) && data.user.identities.length === 0) {
+      return { ok: false, error: EXISTING_EMAIL_MESSAGE, field: "email" };
+    }
     if (!data.access_token || !data.refresh_token) return { ok: false, error: "Check your email to confirm your account, then return here and sign in." };
     return { ok: true, account: await accountForSession(data), created: true };
-  } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "Could not create your account." }; }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not create your account.";
+    if (/user_already_exists|already registered|already been registered/i.test(message)) {
+      return { ok: false, error: EXISTING_EMAIL_MESSAGE, field: "email" };
+    }
+    return { ok: false, error: message };
+  }
 }
 export async function signIn(email: string, password: string): Promise<AuthResult> {
   const normalized = email.trim().toLowerCase();
