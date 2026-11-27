@@ -4,6 +4,7 @@ import { Bell, Cloud, Database, KeyRound, LogOut, Moon, Sparkles, Trash2, Volume
 import { useAccount } from "@/app/account";
 import { updateAccountName } from "@/services/auth";
 import { useAiStatus } from "@/services/ai";
+import { supabaseRest } from "@/services/supabase";
 import { clearAllLocalData, isPersistent } from "@/data/db";
 import { updateSettings, useSettings, type ThemePref } from "@/data/settings";
 import { PACES, type Pace } from "@/lib/game/types";
@@ -43,6 +44,17 @@ export default function Profile() {
   const [signingOut, setSigningOut] = useState(false);
   const [pushOn, setPushOn] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setIsModerator(false);
+    if (account?.id) {
+      void supabaseRest<{ user_id: string }[]>("moderation_admins", `select=user_id&user_id=eq.${account.id}`)
+        .then(rows => { if (active) setIsModerator(rows.length > 0); })
+        .catch(() => { if (active) setIsModerator(false); });
+    }
+    return () => { active = false; };
+  }, [account?.id]);
   useEffect(() => { let active = true; void pushEnabled().then(value => active && setPushOn(value)).catch(() => undefined); return () => { active = false; }; }, [account?.id]);
   const togglePush = async () => {
     if (pushBusy) return;
@@ -108,7 +120,7 @@ export default function Profile() {
         </form>
       </Card>
 
-      <Card className="mb-5 p-4"><div className="flex flex-wrap gap-2"><Link to="/blocked-users" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><Ban className="h-4 w-4"/>Blocked users</Link><Link to="/admin/reports" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><ShieldCheck className="h-4 w-4"/>Report review (moderators)</Link></div></Card>
+      <Card className="mb-5 p-4"><div className="flex flex-wrap gap-2"><Link to="/blocked-users" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><Ban className="h-4 w-4"/>Blocked users</Link>{isModerator && <Link to="/admin/reports" className="inline-flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm font-medium hover:bg-surface-2"><ShieldCheck className="h-4 w-4"/>Moderator dashboard</Link>}</div></Card>
 
       <h2 id="notifications" className="mb-2 px-1 text-sm font-semibold text-muted">Notifications</h2>
       <Card className="mb-5 divide-y divide-border">
