@@ -28,7 +28,8 @@ export type ChatTurn = { role: "user" | "assistant"; content: string };
 
 export type ContextPassage = { page: number; text: string };
 
-export type ChatRequest = {\n  conversationId?: string;
+export type ChatRequest = {
+  conversationId?: string;
   messages: ChatTurn[];
   mode?: TutorMode;
   document?: { title: string; passages: ContextPassage[] };
@@ -44,7 +45,8 @@ export type GenerateRequest = {
   task: GenerateTask;
   document?: {
     title: string;
-    /** Page-marked text: "[Page 3]\n…". */
+    /** Page-marked text: "[Page 3]
+…". */
     text: string;
     truncated: boolean;
   };
