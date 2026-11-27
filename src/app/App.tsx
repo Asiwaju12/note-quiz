@@ -31,6 +31,8 @@ const Profile = lazy(() => import("@/pages/Profile"));
 const Multiplayer = lazy(() => import("@/pages/Multiplayer"));
 const Messages = lazy(() => import("@/pages/Messages"));
 const Notifications = lazy(() => import("@/pages/Notifications"));
+const BlockedUsers = lazy(() => import("@/pages/BlockedUsers"));
+const ReportCenter = lazy(() => import("@/pages/ReportCenter"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 function PageFallback() {
@@ -95,6 +97,8 @@ function Routed() {
         <Route path="/multiplayer/:roomId" element={<Shell><Multiplayer /></Shell>} />
         <Route path="/messages" element={<Shell><Messages /></Shell>} />
         <Route path="/notifications" element={<Shell><Notifications /></Shell>} />
+        <Route path="/blocked-users" element={<Shell><BlockedUsers /></Shell>} />
+        <Route path="/admin/reports" element={<Shell><ReportCenter /></Shell>} />
         <Route path="/profile" element={<Shell><Profile /></Shell>} />
         <Route path="*" element={<Shell><NotFound /></Shell>} />
       </Routes>
