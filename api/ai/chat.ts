@@ -11,7 +11,7 @@ function validate(body:ChatRequest):ChatRequest{
  if(!messages.length||messages[messages.length-1].role!=="user")throw new HttpError(400,"The last message must be from the student.");
  const mode=TUTOR_MODES.some(item=>item.id===body.mode)?body.mode:undefined;let budget=MAX_CHAT_CONTEXT_CHARS;
  const passages=(body.document?.passages??[]).filter(p=>typeof p.text==="string"&&Number.isFinite(p.page)).filter(p=>{budget-=p.text.length;return budget>=0;}).slice(0,12);
- return {messages,mode,document:body.document?{title:String(body.document.title??"Document").slice(0,200),passages}:undefined,mistakes:Array.isArray(body.mistakes)?body.mistakes.slice(0,10):undefined};
+ return {messages,conversationId:typeof body.conversationId==="string"?body.conversationId.slice(0,120):undefined,mode,document:body.document?{title:String(body.document.title??"Document").slice(0,200),passages}:undefined,mistakes:Array.isArray(body.mistakes)?body.mistakes.slice(0,10):undefined};
 }
 /** Gemini primary; Claude automatically takes over if Gemini fails before sending output. */
 export async function POST(request:Request):Promise<Response>{
