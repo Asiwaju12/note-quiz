@@ -42,9 +42,9 @@ export default function ReportCenter(){
    ];
    const [r,a,p,b]=await Promise.all(jobs) as [Report[],AiActivity[],Profile[],UserBlock[]];
    setReports(r);setAiActivity(a);setUsers(p);setBlocks(b);
-   if(can("moderators.manage"))setModerators(await supabaseRest<Moderator[]>("moderation_admins","select=user_id,role,permissions&order=created_at.asc"));
-   if(can("announcements.manage"))setAnnouncements(await supabaseRest<Announcement[]>("platform_announcements","select=id,title,body,severity,published,starts_at,ends_at,created_at&order=created_at.desc&limit=100"));
-   if(can("audit.view"))setAudit(await supabaseRest<Audit[]>("moderation_audit_log","select=id,actor_id,action,target_type,target_id,details,created_at&order=created_at.desc&limit=200"));
+   if(mine.role==="super_admin"||(mine.permissions||[]).includes("moderators.manage"))setModerators(await supabaseRest<Moderator[]>("moderation_admins","select=user_id,role,permissions&order=created_at.asc"));
+   if(mine.role==="super_admin"||(mine.permissions||[]).includes("announcements.manage"))setAnnouncements(await supabaseRest<Announcement[]>("platform_announcements","select=id,title,body,severity,published,starts_at,ends_at,created_at&order=created_at.desc&limit=100"));
+   if(mine.role==="super_admin"||(mine.permissions||[]).includes("audit.view"))setAudit(await supabaseRest<Audit[]>("moderation_audit_log","select=id,actor_id,action,target_type,target_id,details,created_at&order=created_at.desc&limit=200"));
   }catch(e){setError(e instanceof Error?e.message:"Could not load moderation centre.");}
   finally{setLoading(false);}
  };
