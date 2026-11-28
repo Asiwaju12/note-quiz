@@ -38,6 +38,29 @@ export function AuthDialog() {
     setPendingVerification(false);
   };
 
+  const checkExistingEmail = async () => {
+    if (mode !== "signup" || busy) return;
+    const email = form.email.trim().toLowerCase();
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email)) return;
+    try {
+      const response = await fetch("/api/auth/email-check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) return; // Do not block signup if the preflight service is temporarily unavailable.
+      const result = await response.json() as { exists?: boolean };
+      if (result.exists) {
+        setMode("signin");
+        setPendingVerification(false);
+        setError(null);
+        setInfo("An account with this email already exists. Sign in with your existing password, or use Forgot your password.");
+      }
+    } catch {
+      // The submit handler performs the authoritative duplicate check as well.
+    }
+  };
+
   const resendVerification = async () => {
     const email = form.email.trim().toLowerCase();
     if (!email || busy) return;
@@ -137,7 +160,7 @@ export function AuthDialog() {
             </Field>
           </div>
         )}
-        <Field label="Email">{(id) => <Input id={id} type="email" value={form.email} onChange={(e) => update("email", e.target.value)} autoComplete="email" required />}</Field>
+        <Field label="Email">{(id) => <Input id={id} type="email" value={form.email} onChange={(e) => update("email", e.target.value)} onBlur={() => void checkExistingEmail()} autoComplete="email" required />}</Field>
         {mode !== "reset" && (
           <Field label="Password" hint={mode === "signup" ? "At least 8 characters." : undefined}>
             {(id) => (
